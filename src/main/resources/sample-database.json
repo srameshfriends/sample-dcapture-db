@@ -1,0 +1,50 @@
+[
+  {
+    "name": "user",
+    "model": "sample.dcapture.sql.model.User",
+    "primaryColumn": "id",
+    "columns": [
+      {
+        "name": "id",
+        "autoIncrement": true
+      },
+      {
+        "name": "email",
+        "length": 64
+      },
+      {
+        "name": "user_name",
+        "field": "userName",
+        "length": 64
+      },
+      {
+        "name": "full_name",
+        "field": "fullName",
+        "length": 128
+      },
+      {
+        "name": "password",
+        "length": 128
+      },
+      {
+        "name": "confirm_password",
+        "field": "confirmPassword",
+        "length": 128
+      }
+    ],
+    "fetchGroups": {
+      "all": {
+        "columns": [
+          "email",
+          "user_name",
+          "full_name",
+          "password",
+          "confirm_password"
+        ],
+        "orderBy": [
+          "email"
+        ]
+      }
+    }
+  }
+]
