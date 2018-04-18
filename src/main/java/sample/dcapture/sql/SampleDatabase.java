@@ -4,8 +4,6 @@ import dcapture.sql.core.FetchGroup;
 import dcapture.sql.core.SqlColumn;
 import dcapture.sql.core.SqlTable;
 import dcapture.sql.core.SqlTypeMap;
-import dcapture.sql.postgres.PgDatabase;
-import dcapture.sql.postgres.PgTypeMap;
 
 import javax.json.*;
 import java.io.File;
@@ -38,13 +36,6 @@ public class SampleDatabase {
         throw new NullPointerException("File not found at class path " + fileName);
     }
 
-    private SqlTypeMap getSqlTypeMap() {
-        if (sqlTypeMap == null) {
-            sqlTypeMap = new PgTypeMap();
-        }
-        return sqlTypeMap;
-    }
-
     private Map<String, Field> getFieldMap(Class<?> model) {
         Map<String, Field> map = new HashMap<>();
         Field[] fieldArray = model.getDeclaredFields();
@@ -54,24 +45,16 @@ public class SampleDatabase {
         return map;
     }
 
-    private Class<?> getModelClass(String model, String tableName) {
-        if (model == null || model.trim().isEmpty()) {
+    private Class<?> getType(String type, String tableName) {
+        if (type == null || type.trim().isEmpty()) {
             return null;
         }
         try {
-            return Class.forName(model.trim());
+            return Class.forName(type.trim());
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
-        throw new IllegalArgumentException(tableName + " : table model class not found (" + model + ")");
-    }
-
-    private JsonObject getJsonObject(JsonObject obj, String key) {
-        JsonValue value = obj.get(key);
-        if (value instanceof JsonObject) {
-            return ((JsonObject) value);
-        }
-        return null;
+        throw new IllegalArgumentException(tableName + " : table type class not found (" + type + ")");
     }
 
     private JsonArray getJsonArray(JsonObject obj, String key) {
@@ -103,14 +86,8 @@ public class SampleDatabase {
         return null;
     }
 
-    private FetchGroup getAllFetchGroup(List<String> tableColumnList) {
-        FetchGroup fetchGroup = new FetchGroup("all");
-        fetchGroup.setColumnList(new ArrayList<>(tableColumnList));
-        fetchGroup.setOrderBy(new String[]{tableColumnList.get(0)});
-        return fetchGroup;
-    }
-
-    private FetchGroup getFetchGroup(List<String> tableColumnList, String name, JsonObject obj) {
+    private FetchGroup getFetchGroup(List<String> tableColumnList, JsonObject obj) {
+        String name = getString(obj, "name");
         JsonArray columnArray = getJsonArray(obj, "columns");
         JsonArray orderByArray = getJsonArray(obj, "orderBy");
         if (columnArray == null || columnArray.isEmpty()) {
@@ -144,8 +121,9 @@ public class SampleDatabase {
         if (orderByColList.isEmpty()) {
             orderByColList.add(fetchColList.get(0));
         }
-        FetchGroup fetchGroup = new FetchGroup(name);
-        fetchGroup.setColumnList(fetchColList);
+        FetchGroup fetchGroup = new FetchGroup();
+        fetchGroup.setName(name);
+        fetchGroup.setColumns(fetchColList);
         String[] orderByStrings = new String[orderByColList.size()];
         fetchGroup.setOrderBy(orderByColList.toArray(orderByStrings));
         return fetchGroup;
@@ -160,11 +138,11 @@ public class SampleDatabase {
         if (name == null || name.trim().isEmpty()) {
             throw new NullPointerException("Table : " + sqlTable.getName() + " >> column name should not be null or empty");
         }
-        if (sqlTable.isModelLessTable()) {
+        if (sqlTable.getType() == null) {
             if (type == null || type.trim().isEmpty()) {
-                throw new NullPointerException("Table : " + sqlTable.getName() + " >> column name should not be null or empty");
+                throw new NullPointerException("Table : " + sqlTable.getName() + ", Column : " + name + " >> type should not be null or empty");
             }
-            sqlType = getSqlTypeMap().getSqlType(type);
+            sqlType = sqlTypeMap.getSqlType(type);
         } else {
             if (fieldName == null || fieldName.trim().isEmpty()) {
                 fieldName = name;
@@ -173,22 +151,26 @@ public class SampleDatabase {
             Field field = fieldMap.get(fieldName);
             if (field == null) {
                 throw new NullPointerException("Table : " + sqlTable.getName()
-                        + ", Table Model : " + sqlTable.getModel()
+                        + ", Table Type : " + sqlTable.getType()
                         + ", Column : " + name + ", Field : " + fieldName
                         + " >> field not found for ('" + fieldName + "')");
             }
             fieldName = fieldName.trim();
             fieldClass = field.getType();
-            sqlType = getSqlTypeMap().getSqlType(fieldClass);
+            sqlType = sqlTypeMap.getSqlType(fieldClass);
         }
         if (sqlType == null) {
 
             throw new NullPointerException("Table : " + sqlTable.getName()
-                    + ", Table Model : " + sqlTable.getModel()
+                    + ", Table Type : " + sqlTable.getType()
                     + ", Column : " + name + ", Field : " + fieldName + ", Field Class : " + fieldClass
                     + " >> sql data type not supported");
         }
-        SqlColumn sqlColumn = new SqlColumn(name, sqlType, fieldClass, fieldName);
+        SqlColumn sqlColumn = new SqlColumn();
+        sqlColumn.setName(name);
+        sqlColumn.setSqlType(sqlType);
+        sqlColumn.setField(fieldName);
+        sqlColumn.setType(fieldClass);
         sqlColumn.setLength(getInt(obj, "length"));
         sqlColumn.setAutoIncrement(getBoolean(obj, "autoIncrement"));
         sqlColumn.setNotNull(getBoolean(obj, "notNull"));
@@ -197,20 +179,22 @@ public class SampleDatabase {
 
     private SqlTable getSqlTable(JsonObject obj) {
         String name = getString(obj, "name");
-        String model = getString(obj, "model");
-        String primaryColumn = getString(obj, "primaryColumn");
-        String versionColumn = getString(obj, "versionColumn");
+        String typeText = getString(obj, "type");
+        String primary = getString(obj, "primary");
+        String version = getString(obj, "version");
         JsonArray columns = getJsonArray(obj, "columns");
-        JsonObject fetchGroups = getJsonObject(obj, "fetchGroups");
-        Class<?> tableModel = getModelClass(model, name);
+        JsonArray fgArray = getJsonArray(obj, "fetchGroups");
+        Class<?> tableType = getType(typeText, name);
         if (name == null || name.trim().isEmpty()) {
             throw new NullPointerException("sql table name should not be null or empty");
         }
         if (columns == null || 2 > columns.size()) {
             throw new NullPointerException("sql table columns should not be null or minimum 2 columns required");
         }
-        SqlTable sqlTable = new SqlTable(name, tableModel);
-        Map<String, Field> fieldMap = sqlTable.isModelLessTable() ? null : getFieldMap(sqlTable.getModel());
+        SqlTable sqlTable = new SqlTable();
+        sqlTable.setName(name);
+        sqlTable.setType(tableType);
+        Map<String, Field> fieldMap = sqlTable.getType() == null ? null : getFieldMap(sqlTable.getType());
         List<SqlColumn> columnList = new ArrayList<>();
         for (JsonValue jv : columns) {
             if (jv instanceof JsonObject) {
@@ -221,44 +205,26 @@ public class SampleDatabase {
         for (SqlColumn column : columnList) {
             columnNameList.add(column.getName());
         }
-        Map<String, FetchGroup> fetchGroupMap = new HashMap<>();
-        if (fetchGroups == null || fetchGroups.isEmpty()) {
-            FetchGroup fetchGroup = getAllFetchGroup(columnNameList);
-            fetchGroupMap.put(fetchGroup.getName(), fetchGroup);
-        } else {
-            for (Map.Entry<String, JsonValue> entry : fetchGroups.entrySet()) {
-                if (entry.getValue() instanceof JsonObject) {
-                    FetchGroup fetchGroup = getFetchGroup(columnNameList, entry.getKey(), (JsonObject) entry.getValue());
+        List<FetchGroup> fetchGroups = new ArrayList<>();
+        if (fgArray != null) {
+            for (JsonValue entry : fgArray) {
+                if (entry instanceof JsonObject) {
+                    FetchGroup fetchGroup = getFetchGroup(columnNameList, (JsonObject) entry);
                     if (fetchGroup != null) {
-                        fetchGroupMap.put(fetchGroup.getName(), fetchGroup);
+                        fetchGroups.add(fetchGroup);
                     }
                 }
             }
         }
-        if (fetchGroupMap.isEmpty() || fetchGroupMap.get("all") == null) {
-            FetchGroup fetchGroup = getAllFetchGroup(columnNameList);
-            fetchGroupMap.put(fetchGroup.getName(), fetchGroup);
-        }
-        SqlColumn primary = null;
-        SqlColumn version = null;
-        primaryColumn = primaryColumn == null ? "" : primaryColumn.trim().toLowerCase();
-        versionColumn = versionColumn == null ? "" : versionColumn.trim().toLowerCase();
-        for (SqlColumn sqlCol : columnList) {
-            if (primaryColumn.equals(sqlCol.getName())) {
-                primary = sqlCol;
-            }
-            if (versionColumn.equals(sqlCol.getName())) {
-                version = sqlCol;
-            }
-        }
         sqlTable.setColumns(columnList);
-        sqlTable.setFetchGroups(fetchGroupMap);
+        sqlTable.setFetchGroups(fetchGroups);
         sqlTable.setVersion(version);
         sqlTable.setPrimary(primary);
         return sqlTable;
     }
 
-    public List<SqlTable> loadTableList(String fileName) {
+    public List<SqlTable> loadTableList(SqlTypeMap sqlTypeMap, String fileName) {
+        this.sqlTypeMap = sqlTypeMap;
         List<SqlTable> tableList = new ArrayList<>();
         try {
             File databaseFile = getClassPathFile(fileName);

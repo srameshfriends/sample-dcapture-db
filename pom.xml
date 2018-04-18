@@ -70,8 +70,8 @@
         </dependency>
 
         <dependency>
-            <groupId>dcapture.sql</groupId>
-            <artifactId>dcapture</artifactId>
+            <groupId>dcapture</groupId>
+            <artifactId>dcapture-sql</artifactId>
             <version>${dcapture-sql}</version>
         </dependency>
 

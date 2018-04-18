@@ -4,8 +4,9 @@ import dcapture.sql.core.DatabaseContext;
 import dcapture.sql.core.SqlDatabase;
 import dcapture.sql.core.SqlLogger;
 import dcapture.sql.core.SqlTable;
+import dcapture.sql.postgres.PgContext;
 import dcapture.sql.postgres.PgDatabase;
-import dcapture.sql.postgres.PostgresContext;
+import dcapture.sql.postgres.PgTypeMap;
 import org.apache.log4j.Logger;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import sample.dcapture.sql.service.SearchServlet;
@@ -17,7 +18,7 @@ import java.util.List;
 
 abstract class SampleSettings {
     private static final Logger logger = Logger.getLogger(SampleSettings.class);
-    static final String RESOURCE_BASE = "C:\\Users\\Ramesh\\IdeaProjects\\sample-dcapture-sql\\webapp";
+    static final String RESOURCE_BASE = "/home/ramesh/IdeaProjects/sample-dcapture-sql/webapp";
     static final int SERVER_PORT = 7070;
 
     void setAttribute(ServletContext context) {
@@ -31,14 +32,14 @@ abstract class SampleSettings {
     }
 
     private DatabaseContext getSqlContext() throws SQLException {
-        DatabaseContext context = new PostgresContext();
+        DatabaseContext context = new PgContext();
         context.setDatabase(getDatabase());
         return context;
     }
 
     public SqlDatabase getDatabase() throws SQLException {
         SampleDatabase tutorial = new SampleDatabase();
-        List<SqlTable> tableList = tutorial.loadTableList("sample-database.json");
+        List<SqlTable> tableList = tutorial.loadTableList(new PgTypeMap(), "sample-database.json");
         PgDatabase database = new PgDatabase();
         database.config("logger", getSqlLogger());
         database.config("schema", "dcapture");

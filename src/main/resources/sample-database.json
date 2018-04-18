@@ -1,8 +1,8 @@
 [
   {
     "name": "user",
-    "model": "sample.dcapture.sql.model.User",
-    "primaryColumn": "id",
+    "type": "sample.dcapture.sql.model.User",
+    "primary": "id",
     "columns": [
       {
         "name": "id",
@@ -32,8 +32,9 @@
         "length": 128
       }
     ],
-    "fetchGroups": {
-      "all": {
+    "fetchGroups": [
+      {
+        "name": "all",
         "columns": [
           "email",
           "user_name",
@@ -45,6 +46,6 @@
           "email"
         ]
       }
-    }
+    ]
   }
 ]
