@@ -111,10 +111,10 @@ public class UserServlet extends HttpServlet {
 
     private void search(HttpServletResponse response) throws IOException {
         try {
-            SqlBuilder builder = context.getQueryBuilder();
-            builder.select("id, email, user_name, full_name, password").from("user").orderBy("email");
+            SqlQuery query = context.getQuery().add("SELECT id, email, user_name, full_name, password FROM ")
+                    .table("user").add(" ORDER BY email");
             SqlTransaction transaction = context.beginTransaction();
-            SqlResult sqlResult = transaction.getResult(builder);
+            SqlResult sqlResult = transaction.getResult(query);
             DataParser parser = new DataParser();
             JsonArray array = parser.getJsonArrayUser(sqlResult);
             send(array, response);

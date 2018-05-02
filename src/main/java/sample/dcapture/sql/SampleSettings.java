@@ -1,7 +1,6 @@
 package sample.dcapture.sql;
 
 import dcapture.sql.core.DatabaseContext;
-import dcapture.sql.core.SqlDatabase;
 import dcapture.sql.core.SqlLogger;
 import dcapture.sql.core.SqlTable;
 import dcapture.sql.postgres.PgContext;
@@ -32,24 +31,19 @@ abstract class SampleSettings {
     }
 
     private DatabaseContext getSqlContext() throws SQLException {
-        DatabaseContext context = new PgContext();
-        context.setDatabase(getDatabase());
-        return context;
-    }
-
-    public SqlDatabase getDatabase() throws SQLException {
-        SampleDatabase tutorial = new SampleDatabase();
-        List<SqlTable> tableList = tutorial.loadTableList(new PgTypeMap(), "sample-database.json");
         PgDatabase database = new PgDatabase();
+        SampleDatabase tutorial = new SampleDatabase();
+        List<SqlTable> tableList = tutorial.loadTableList(database.getTypeMap(), "sample-database.json");
+
         database.config("logger", getSqlLogger());
         database.config("schema", "dcapture");
         database.config("url", "jdbc:postgresql://localhost/tutorial");
         database.config("user", "postgres");
         database.config("password", "postgres");
         database.config("autoCommit", false);
-        database.config("tableList", tableList);
+        database.config("tables", tableList);
         database.begin();
-        return database;
+        return new PgContext(database);
     }
 
     void addServlet(ServletContextHandler context) {
