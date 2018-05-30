@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="Ramesh Annachi">
+    <title data-locale="currency"></title>
+    <link rel="icon" href="../favicon.ico">
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/fa-svg-with-js.css" rel="stylesheet">
+    <link href="../css/main.css" rel="stylesheet">
+    <script src="../js/jquery-3.3.1.min.js"></script>
+    <script src="../js/bootstrap.min.js"></script>
+    <script src="../js/fontawesome-all.min.js"></script>
+    <script src="../js/form-fields.js"></script>
+    <script src="../js/main.js"></script>
+</head>
+
+<body>
+
+<h2 class="text-center" data-locale="company.title"></h2>
+<div class="container pt-3">
+    <div class="row justify-content-sm-center">
+        <div class="col-lg-6 col-lg-4">
+            <div class="card border-0 text-center">
+                <div data-locale="signInAppsUser" class="card-header border-0 bg-transparent"></div>
+                <div class="card-body border-0">
+                    <img src="../img/logo.png">
+                    <div class="form-group  text-left">
+                        <label id="ajkhdfjjfdas78934jdh" class="float-left"></label>
+                        <a  href="signin1.html" class="ml-3" data-locale="changeSignInUser"></a>
+                        <div class="input-group mb-2">
+                            <input type="password" class="form-control" id="adsfjhdsfjkhdfjj" placeholder="Password">
+                            <div class="input-group-append">
+                                <button id="actionNext" data-locale="actionSubmit"
+                                        class="btn btn-outline-info"></button>
+                            </div>
+                        </div>
+                        <div class="form-group d-inline">
+                            <a href="signin1.html" data-locale="actionResetPassword" class="float-left"></a>
+                            <a href="signup.html" data-locale="createAccount" class="float-right"></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function UserBatchView2() {
+        let self = this;
+        self.onSubmit = function (data) {
+            $.ajax({
+                type: "POST",
+                dataType: "json",
+                url: "../api/session/authorised",
+                data: JSON.stringify(data),
+                error: function (err) {
+                    new ShowMessageDialog(err.responseText);
+                },
+                success: function (args) {
+                    if (args["authenticated"] === true) {
+                        SessionDB.set("aduetthaecnittinceahtteuda", JSON.stringify(args));
+                        window.location.href = "expense-list.html";
+                    } else {
+                        new ShowMessageDialog("Unknown issue would not be signed in");
+                    }
+                }
+            });
+        };
+        self.getValue = function () {
+            let args = SessionDB.get('aduetthaecnittinceahtteuda');
+            try {
+                args = JSON.parse(args);
+                let cde = args["code"], eml = args["email"];
+                if (($.type(cde) === "string" && 4 < cde.length) && ($.type(eml) === "string" && 4 < eml.length)) {
+                    return args;
+                }
+            } catch (e) {
+                args = {};
+            }
+            return args;
+        };
+        self.onEvent = function () {
+            let swd = node.val().trim(), args = self.getValue();
+            if (3 < swd.length) {
+                self.onSubmit({code: args["code"], pass: swd});
+            } else {
+                new ShowMessageDialog("Email not valid");
+                node.focus();
+                node.select();
+            }
+        };
+        let node = $("#adsfjhdsfjkhdfjj");
+        node.keyup(function (evt) {
+            evt.preventDefault();
+            if (evt.keyCode === 13) {
+                self.onEvent();
+            }
+        });
+        $("#actionNext").click(function (evt) {
+            evt.preventDefault();
+            self.onEvent();
+        });
+        let email, args = self.getValue();
+        email = args["email"];
+        if ($.type(email) === "string" && 4 < email.length) {
+            $("#ajkhdfjjfdas78934jdh").text(email);
+            $("#adsfjhdsfjahdfjj").focus();
+        } else {
+            new ShowMessageDialog("Email not valid");
+        }
+    }
+
+    $(document).ready(function () {
+        let pm = new PageManager();
+        pm.loadLocale("../api/locale/default", function () {
+            pm.setPlaceholder();
+        });
+        new UserBatchView2();
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "language": "en",
+  "port": 9090,
+  "database": [
+    {
+      "name": "expenses",
+      "url": "jdbc:postgresql://localhost/expenses",
+      "user": "cG9zdGdyZXM=",
+      "password": "cG9zdGdyZXM="
+    }
+  ],
+  "locale": "classpath:locale",
+  "webapp": "absolute:/home/ramesh/IdeaProjects/sample-dcapture-sql/webapp"
+}

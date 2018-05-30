@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="Ramesh Annachi">
+    <title data-locale="expense_category"></title>
+    <link rel="icon" href="../favicon.ico">
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/fa-svg-with-js.css" rel="stylesheet">
+    <link href="../css/main.css" rel="stylesheet">
+    <script src="../js/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
+    <script src="../js/bootstrap.min.js"></script>
+    <script src="../js/fontawesome-all.min.js"></script>
+    <script src="../js/js.cookie.min.js"></script>
+    <script src="../js/simple-grid.js"></script>
+    <script src="../js/form-fields.js"></script>
+    <script src="../js/main.js"></script>
+</head>
+
+<body>
+
+<nav id="nav" class="navbar fixed-top navbar-expand-lg navbar-light bg-light"></nav>
+
+<main role="main" class="container">
+    <div id="form-div" class="row">
+        <div class="mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <span id="actionBack">
+                        <i class="fas fa-arrow-left icon-blue"></i>
+                    </span>
+                    <span data-locale="expense_category" class="ml-3"></span>
+                    <span class="float-right" id="actionClose">
+                        <i class="fas fa-times icon-blue"></i>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <form data-id="expense_category" data-type="form" class="form" method="post" role="form">
+                        <input type="hidden" data-id="expense_category.id" data-type="hidden">
+                        <input type="hidden" data-id="expense_category.rev" data-type="hidden">
+                        <div class="form-group row">
+                            <label data-locale="expense_category.code"
+                                   class="col-lg-4 col-form-label form-control-label"></label>
+                            <div class="col-lg-8">
+                                <input data-id="expense_category.code" data-type="text" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label data-locale="expense_category.name"
+                                   class="col-lg-4 col-form-label form-control-label"></label>
+                            <div class="col-lg-8">
+                                <input data-id="expense_category.name" data-type="text" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label data-locale="expense_category.status"
+                                    class="col-lg-4 col-form-label form-control-label"></label>
+                            <div class="col-lg-8">
+                                <input data-id="expense_category.status" data-type="text" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-lg-4 col-form-label form-control-label"></label>
+                            <div class="col-lg-8">
+                                <input id="actionSave" type="submit" class="btn btn-primary" value="Save">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="list-div">
+
+        <div class="row">
+            <div class="d-inline">
+                <button id="actionCreate" class="btn btn-primary" type="submit">Create New</button>
+            </div>
+            <div class="form-inline ml-2">
+                <input id="searchText" placeholder="Search" class="form-control mr-sm-2" type="text"
+                       aria-label="Search">
+                <button id="actionSearch" class="btn btn-outline-info my-2 my-sm-0" type="button">
+                    <i class="fas fa-search icon-blue"></i>
+                </button>
+                <button id="actionPrevious" class="btn btn-outline-info my-2 my-sm-0 ml-2" type="button">
+                    <i class="fas fa-chevron-left icon-blue"></i>
+                </button>
+                <button id="actionNext" class="btn btn-outline-info my-2 my-sm-0  ml-3" type="button">
+                    <i class="fas  fa-chevron-right icon-blue"></i>
+                </button>
+                <label id="pagingInfo" class="btn  ml-2">-</label>
+
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <table class="table">
+                <thead data-id="categoryList">
+                <tr>
+                    <th data-id="categoryList.actionEdit" data-locale="actionEdit" width="40px"></th>
+                    <th data-id="categoryList.code" data-locale="expense_category.code"></th>
+                    <th data-id="categoryList.name" data-locale="expense_category.name"></th>
+                    <th data-id="categoryList.status" data-locale="expense_category.status"></th>
+                    <th data-id="categoryList.actionDelete" data-locale="actionDelete" width="40px"></th>
+                </tr>
+                </thead>
+                <tbody data-id="currencyList">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<script>
+
+    function ExpenseCategoryView() {
+        let self = this;
+        self.formDiv = $("#form-div");
+        self.listDiv = $("#list-div");
+        self.model = {name: "expense_category"};
+        self.paging = {};
+        self.paging.totalRecords = 0;
+        self.paging.previous = $("#actionPrevious");
+        self.paging.info = $("#pagingInfo");
+        self.paging.next = $("#actionNext");
+        self.paging.start = 0;
+        self.paging.limit = 10;
+        self.paging.isPrevious = false;
+        self.paging.isNext = false;
+        self.paging.sortList = [];
+        self.dataGrid = new SimpleGrid({name:"categoryList"}, function (eventId, name, data) {
+            if("actionEdit" === eventId) {
+                self.showFormView();
+                self.form.setValue(data);
+            } else if("actionDelete" === eventId) {
+                let array = [];
+                array.push(data);
+                self.onDelete(array);
+            }
+        });
+        self.showListView = function () {
+            $("#form-div").hide();
+            $("#list-div").show();
+        };
+        self.showFormView = function () {
+            $("#list-div").hide();
+            $("#form-div").show();
+        };
+        self.setPaging = function (obj) {
+            let startIdx = obj.start + 1, endIdx = obj.start + obj.length, currentCount;
+            self.paging.isPrevious = true;
+            self.paging.isNext = true;
+            if (0 === obj.length && 0 === obj.totalRecords) {
+                self.paging.info.text(" - ");
+            } else {
+                self.paging.info.text(startIdx + " - " + endIdx + " of " + obj.totalRecords);
+            }
+            if (0 === obj.start) {
+                self.paging.isPrevious = false;
+            }
+            currentCount = obj.start + obj.length;
+            if (obj.totalRecords <= currentCount) {
+                self.paging.isNext = false;
+            }
+        };
+        self.search = function (req) {
+            $.ajax({
+                type: "POST",
+                dataType: "json",
+                url: "../api/expense_category/search",
+                data: JSON.stringify(req),
+                error: function (err) {
+                    new ShowMessageDialog(err.responseText);
+                },
+                success: function (data) {
+                    const model = self.model.name;
+                    self.dataGrid.setData(data[model]);
+                    self.setPaging(data);
+                }
+            });
+        };
+        self.getSearchRequest = function (start) {
+            self.paging.start = 0 > start ? 0 : start;
+            let req = {};
+            req.name = self.model.name;
+            req.start = start;
+            req.limit = self.paging.limit;
+            req.searchText = $("#searchText").val().trim();
+            return req;
+        };
+        self.onSave = function (data) {
+            $.ajax({
+                type: "POST",
+                dataType: "json",
+                url: "../api/expense_category/save",
+                data: JSON.stringify(data),
+                error: function (err) {
+                    new ShowMessageDialog(err.responseText);
+                },
+                success: function () {
+                    self.showListView();
+                    self.search(self.getSearchRequest(self.paging.start));
+                }
+            });
+        };
+        self.onDelete = function (data) {
+            $.ajax({
+                type: "POST",
+                dataType: "json",
+                url: "../api/expense_category/delete",
+                data: JSON.stringify(data),
+                error: function (err) {
+                    new ShowMessageDialog(err.responseText);
+                },
+                success: function () {
+                    self.search(self.getSearchRequest(self.paging.start));
+                }
+            });
+        };
+        self.form = new FormBinder(self.model, function (evt, type, name) {
+            if ("submit" === type && "expense_category" === name) {
+                let req = [];
+                req.push(self.form.getValue());
+                self.onSave(req);
+            }
+        });
+        self.paging.previous.click(function () {
+            if (self.paging.isPrevious) {
+                let req = self.getSearchRequest(self.paging.start - self.paging.limit);
+                self.search(req);
+            }
+        });
+        self.paging.next.click(function () {
+            if (self.paging.isNext) {
+                let req = self.getSearchRequest(self.paging.start + self.paging.limit);
+                self.search(req);
+            }
+        });
+        $("#actionCreate").click(function () {
+            self.showFormView();
+            self.form.setValue();
+        });
+        $("#actionSearch").click(function (evt) {
+            evt.preventDefault();
+            self.showListView();
+            self.search(self.getSearchRequest(0));
+        });
+        $("#actionClose").click(function (evt) {
+            self.showListView();
+        });
+        $("#actionBack").click(function (evt) {
+            evt.preventDefault();
+            showView(SessionDB.get("previousView"));
+        });
+        $("#currencyForm").on("submit", function (evt) {
+            evt.preventDefault();
+            let req = [];
+            req.push(self.form.getValue());
+            self.onSave(req);
+        });
+        self.searchDelay = new CallFuture(1200);
+        $("#searchText").keyup(function (evt) {
+            self.searchDelay.cancelAll();
+            if (13 === evt.keyCode) {
+                self.search(self.getSearchRequest(0));
+            } else {
+                self.searchDelay.call(function () {
+                    self.search(self.getSearchRequest(0));
+                });
+            }
+        });
+        self.search(self.getSearchRequest(0));
+        self.form.setValue();
+        self.formDiv.hide();
+    }
+    $(document).ready(function () {
+        let pm = new PageManager();
+        pm.loadMenu("../template/expense-menu.html", $("#nav"), function () {
+            performSignOut("../api/session/invalidate");
+            pm.loadLocale("../api/locale/default");
+            pm.setActiveMenuItem("expense_category");
+            new ExpenseCategoryView();
+        });
+    });
+</script>
+
+</body>
+</html>

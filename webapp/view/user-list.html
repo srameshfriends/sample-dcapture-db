@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="Ramesh Annachi">
+    <title data-locale="apps_user"></title>
+    <link rel="icon" href="../favicon.ico">
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/fa-svg-with-js.css" rel="stylesheet">
+    <link href="../css/main.css" rel="stylesheet">
+    <script src="../js/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
+    <script src="../js/bootstrap.min.js"></script>
+    <script src="../js/fontawesome-all.min.js"></script>
+    <script src="../js/js.cookie.min.js"></script>
+    <script src="../js/simple-grid.js"></script>
+    <script src="../js/main.js"></script>
+</head>
+
+<body>
+<nav id="nav" class="navbar fixed-top navbar-expand-lg navbar-light bg-light"></nav>
+
+<main role="main" class="container">
+    <div id="user-list">
+        <div class="row">
+            <div class="d-inline">
+                <a href="user-form.html" data-locale="actionCreate" class="btn btn-primary"></a>
+            </div>
+            <div class="form-inline ml-2">
+                <input id="searchText" placeholder="Search" class="form-control mr-sm-2" type="text"
+                       aria-label="Search">
+                <button id="actionSearch" class="btn btn-outline-info my-2 my-sm-0" type="button">
+                    <i class="fas fa-search icon-blue"></i>
+                </button>
+                <button id="actionPrevious" class="btn btn-outline-info my-2 my-sm-0 ml-2" type="button">
+                    <i class="fas fa-chevron-left icon-blue"></i>
+                </button>
+                <button id="actionNext" class="btn btn-outline-info my-2 my-sm-0  ml-3" type="button">
+                    <i class="fas  fa-chevron-right icon-blue"></i>
+                </button>
+                <label id="pagingInfo" class="btn  ml-2">-</label>
+
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <table class="table">
+                <thead data-id="userList">
+                <tr>
+                    <th data-id="userList.actionEdit" data-locale="actionEdit" width="40px"></th>
+                    <th data-id="userList.email" data-locale="apps_user.email"></th>
+                    <th data-id="userList.name" data-locale="apps_user.name"></th>
+                    <th data-id="userList.status" data-locale="apps_user.status"></th>
+                    <th data-id="userList.actionDelete" data-locale="actionDelete" width="40px"></th>
+                </tr>
+                </thead>
+                <tbody data-id="userList">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<script>
+
+    function UserListView() {
+        let self = this;
+        self.model = {name: "apps_user"};
+        self.paging = {};
+        self.paging.totalRecords = 0;
+        self.paging.previous = $("#actionPrevious");
+        self.paging.info = $("#pagingInfo");
+        self.paging.next = $("#actionNext");
+        self.paging.start = 0;
+        self.paging.limit = 10;
+        self.paging.isPrevious = false;
+        self.paging.isNext = false;
+        self.paging.sortList = [];
+        self.dataGrid = new SimpleGrid({name:"userList"}, function (eventId, name, data) {
+            if("actionEdit" === eventId) {
+                SessionDB.set("apps_user", JSON.stringify(data));
+                window.location.href = "user-form.html";
+            } else if("actionDelete" === eventId) {
+                let array = [];
+                array.push(data);
+                self.onDelete(array);
+            }
+        });
+        self.setPaging = function (obj) {
+            let startIdx = obj.start + 1, endIdx = obj.start + obj.length, currentCount;
+            self.paging.isPrevious = true;
+            self.paging.isNext = true;
+            if (0 === obj.length && 0 === obj.totalRecords) {
+                self.paging.info.text(" - ");
+            } else {
+                self.paging.info.text(startIdx + " - " + endIdx + " of " + obj.totalRecords);
+            }
+            if (0 === obj.start) {
+                self.paging.isPrevious = false;
+            }
+            currentCount = obj.start + obj.length;
+            if (obj.totalRecords <= currentCount) {
+                self.paging.isNext = false;
+            }
+        };
+        self.search = function (req) {
+            $.ajax({
+                type: "POST",
+                dataType: "json",
+                url: "../api/user/search",
+                data: JSON.stringify(req),
+                error: function (err) {
+                    new ShowMessageDialog(err.responseText);
+                },
+                success: function (data) {
+                    const model = self.model.name;
+                    self.dataGrid.setData(data[model]);
+                    self.setPaging(data);
+                }
+            });
+        };
+        self.getSearchRequest = function (start) {
+            self.paging.start = 0 > start ? 0 : start;
+            let req = {};
+            req.name = self.model.name;
+            req.start = start;
+            req.limit = self.paging.limit;
+            req.searchText = $("#searchText").val().trim();
+            return req;
+        };
+        self.onDelete = function (data) {
+            $.ajax({
+                type: "POST",
+                dataType: "json",
+                url: "../api/user/delete",
+                data: JSON.stringify(data),
+                error: function (err) {
+                    new ShowMessageDialog(err.responseText);
+                },
+                success: function () {
+                    self.search(self.getSearchRequest(self.paging.start));
+                }
+            });
+        };
+        self.paging.previous.click(function () {
+            if (self.paging.isPrevious) {
+                let req = self.getSearchRequest(self.paging.start - self.paging.limit);
+                self.search(req);
+            }
+        });
+        self.paging.next.click(function () {
+            if (self.paging.isNext) {
+                let req = self.getSearchRequest(self.paging.start + self.paging.limit);
+                self.search(req);
+            }
+        });
+        $("#actionSearch").click(function (evt) {
+            evt.preventDefault();
+            self.search(self.getSearchRequest(0));
+        });
+        self.searchDelay = new CallFuture(1200);
+        $("#searchText").keyup(function (evt) {
+            self.searchDelay.cancelAll();
+            if (13 === evt.keyCode) {
+                self.search(self.getSearchRequest(0));
+            } else {
+                self.searchDelay.call(function () {
+                    self.search(self.getSearchRequest(0));
+                });
+            }
+        });
+        self.search(self.getSearchRequest(0));
+    }
+
+    $(document).ready(function () {
+        let pm = new PageManager();
+        pm.loadMenu("../template/expense-menu.html", $("#nav"), function () {
+            performSignOut("../api/session/invalidate");
+            pm.loadLocale("../api/locale/default");
+            pm.setActiveMenuItem("apps_user");
+            new UserListView();
+        });
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,356 @@
+[
+  {
+    "name": "apps_user",
+    "group": "master",
+    "primary": true,
+    "columns": [
+      {
+        "name": "email",
+        "type": "string"
+      },
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "password",
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "type": "string"
+      }
+    ],
+    "fetchGroups": [
+      {
+        "name": "edit",
+        "columns": [
+          "email",
+          "name",
+          "password",
+          "status"
+        ],
+        "orderBy": [
+          "email"
+        ]
+      },
+      {
+        "name": "required",
+        "columns": [
+          "email",
+          "name",
+          "password"
+        ]
+      },
+      {
+        "name": "search",
+        "columns": [
+          "email",
+          "name"
+        ]
+      },
+      {
+        "name": "unique",
+        "columns": [
+          "email"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "session_batch",
+    "group": "transaction",
+    "primary": true,
+    "columns": [
+      {
+        "name": "code",
+        "type": "string"
+      },
+      {
+        "name": "email",
+        "type": "string"
+      },
+      {
+        "name": "client",
+        "type": "string"
+      },
+      {
+        "name": "created_on",
+        "type": "localdatetime"
+      }
+    ],
+    "fetchGroups": [
+      {
+        "name": "edit",
+        "columns": [
+          "code",
+          "email",
+          "client",
+          "created_on"
+        ],
+        "orderBy": [
+          "email"
+        ]
+      },
+      {
+        "name": "unique",
+        "columns": [
+          "email"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "expense_category",
+    "group": "master",
+    "primary": true,
+    "columns": [
+      {
+        "name": "code",
+        "type": "string"
+      },
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "type": "string"
+      }
+    ],
+    "fetchGroups": [
+      {
+        "name": "edit",
+        "columns": [
+          "code",
+          "name",
+          "status"
+        ],
+        "orderBy": [
+          "code"
+        ]
+      },
+      {
+        "name": "required",
+        "columns": [
+          "code",
+          "name",
+          "status"
+        ]
+      },
+      {
+        "name": "search",
+        "columns": [
+          "code",
+          "name"
+        ]
+      },
+      {
+        "name": "unique",
+        "columns": [
+          "code"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "currency",
+    "group": "master",
+    "primary": true,
+    "columns": [
+      {
+        "name": "code",
+        "type": "string"
+      },
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "symbol",
+        "type": "string"
+      },
+      {
+        "name": "precision",
+        "type": "int"
+      },
+      {
+        "name": "status",
+        "type": "string"
+      }
+    ],
+    "fetchGroups": [
+      {
+        "name": "edit",
+        "columns": [
+          "code",
+          "name",
+          "precision",
+          "symbol",
+          "status"
+        ],
+        "orderBy": [
+          "code"
+        ]
+      },
+      {
+        "name": "required",
+        "columns": [
+          "code",
+          "name",
+          "symbol",
+          "status"
+        ]
+      },
+      {
+        "name": "search",
+        "columns": [
+          "code",
+          "name"
+        ]
+      },
+      {
+        "name": "unique",
+        "columns": [
+          "code"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "project",
+    "group": "master",
+    "primary": true,
+    "columns": [
+      {
+        "name": "code",
+        "type": "string"
+      },
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "type": "string"
+      }
+    ],
+    "fetchGroups": [
+      {
+        "name": "edit",
+        "columns": [
+          "code",
+          "name",
+          "status"
+        ],
+        "orderBy": [
+          "code"
+        ]
+      },
+      {
+        "name": "required",
+        "columns": [
+          "code",
+          "name",
+          "status"
+        ]
+      },
+      {
+        "name": "search",
+        "columns": [
+          "code",
+          "name"
+        ]
+      },
+      {
+        "name": "unique",
+        "columns": [
+          "code"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "expense",
+    "type": "transaction",
+    "primary": true,
+    "columns": [
+      {
+        "name": "code",
+        "type": "string"
+      },
+      {
+        "name": "created_by",
+        "type": "object",
+        "reference": "user_account"
+      },
+      {
+        "name": "expense_date",
+        "type": "localdate"
+      },
+      {
+        "name": "description",
+        "type": "text"
+      },
+      {
+        "name": "expense_category",
+        "type": "object",
+        "reference": "expense_category"
+      },
+      {
+        "name": "currency",
+        "type": "object",
+        "reference": "currency"
+      },
+      {
+        "name": "amount",
+        "type": "double"
+      },
+      {
+        "name": "status",
+        "type": "string"
+      }
+    ],
+    "fetchGroups": [
+      {
+        "name": "edit",
+        "columns": [
+          "code",
+          "expense_date",
+          "description",
+          "expense_category",
+          "currency",
+          "amount",
+          "status"
+        ],
+        "orderBy": [
+          "code"
+        ]
+      },
+      {
+        "name": "required",
+        "columns": [
+          "code",
+          "expense_date",
+          "description",
+          "expense_category",
+          "currency",
+          "amount"
+        ]
+      },
+      {
+        "name": "search",
+        "columns": [
+          "code",
+          "description"
+        ]
+      },
+      {
+        "name": "unique",
+        "columns": [
+          "code"
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="Ramesh Annachi">
+    <title data-locale="currency"></title>
+    <link rel="icon" href="../favicon.ico">
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/fa-svg-with-js.css" rel="stylesheet">
+    <link href="../css/main.css" rel="stylesheet">
+    <script src="../js/jquery-3.3.1.min.js"></script>
+    <script src="../js/bootstrap.min.js"></script>
+    <script src="../js/fontawesome-all.min.js"></script>
+    <script src="../js/form-fields.js"></script>
+    <script src="../js/main.js"></script>
+</head>
+<body>
+<h2 class="text-center" data-locale="companyTitle"></h2>
+<div class="container pt-3">
+    <div class="row justify-content-sm-center">
+        <div class="col-lg-6 col-lg-4">
+            <div class="card text-center">
+                <label data-locale="createAccount" class="card-header text-left"></label>
+                <div class="card-body">
+                    <img src="../img/logo.png">
+                    <form data-id="apps_user" data-type="form" class="form text-left">
+                        <div class="form-group">
+                            <label data-locale="apps_user.name"></label>
+                            <input data-id="apps_user.name" data-type="text" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label data-locale="apps_user.email"></label>
+                            <input data-id="apps_user.email" data-type="text" type="email" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label data-locale="apps_user.password"></label>
+                            <input data-id="apps_user.password" data-type="text" type="password" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <input data-locale="actionSubmit" id="actionSubmit" type="submit" class="btn btn-outline-primary">
+                            <a data-locale="signIn" href="signin1.html" class="float-right"></a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function SignUpView() {
+        let self = this;
+        self.onSave = function (data) {
+            $.ajax({
+                type: "POST",
+                dataType: "json",
+                url: "../api/user/save",
+                data: JSON.stringify(data),
+                error: function (err) {
+                    new ShowMessageDialog(err.responseText);
+                },
+                success: function () {
+                    window.location.href = "signin1.html";
+                }
+            });
+        };
+        self.form = new FormBinder({name: "apps_user"}, function (evt, type, name) {
+            if ("submit" === type && "apps_user" === name) {
+                let req = [];
+                req.push(self.form.getValue());
+                self.onSave(req);
+            }
+        });
+    }
+
+    $(document).ready(function () {
+        let pm = new PageManager();
+        pm.loadLocale("../api/locale/default");
+        new SignUpView();
+    });
+</script>
+
+</body>
+</html>

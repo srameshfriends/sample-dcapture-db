@@ -1,0 +1,42 @@
+body {
+    min-height: 75rem;
+    padding-top: 4.5rem;
+}
+
+.icon-blue {
+    color: deepskyblue;
+    font-size: 1em;
+    cursor: pointer;
+}
+
+.pointer {
+    cursor: pointer;
+}
+
+.border-bottom-only {
+    border: 0;
+    border-bottom: 1px solid #e5e5e5;
+    outline: 0;
+}
+
+.bg-eefdf3 {
+    background-color: #eefdf3;
+}
+
+.bg-e3f5bb {
+    background-color: #e3f5bb;
+}
+
+.bg-abdcfb {
+    background-color: #abdcfb;
+}
+
+.a-link {
+    color: dodgerblue;
+    text-decoration: underline;
+    padding: 0 6px;
+}
+
+.text-bold {
+    font-weight: bold;
+}
