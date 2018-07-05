@@ -1,8 +1,8 @@
-package sample.dcapture.sql.service;
+package sample.dcapture.db.service;
 
 import dcapture.io.LocaleException;
 import dcapture.io.Paging;
-import dcapture.sql.core.*;
+import dcapture.db.core.*;
 import org.apache.log4j.Logger;
 
 import javax.inject.Inject;
@@ -12,15 +12,15 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.ws.rs.Path;
 import java.sql.SQLException;
-import java.util.List;
+import java.util.*;
 
-@Path("/project")
-public class ProjectService extends SqlMapper {
-    private static final Logger logger = Logger.getLogger(ProjectService.class);
+@Path("/expense")
+public class ExpenseService extends SqlMapper {
+    private static final Logger logger = Logger.getLogger(ExpenseService.class);
     private SqlDatabase database;
 
     @Inject
-    public ProjectService(SqlDatabase database) {
+    public ExpenseService(SqlDatabase database) {
         this.database = database;
     }
 
@@ -29,13 +29,13 @@ public class ProjectService extends SqlMapper {
         JsonObjectBuilder result = Json.createObjectBuilder();
         try {
             Paging paging = parsePaging(req);
-            SqlTable sqlTable = database.getTable("project");
+            SqlTable sqlTable = database.getTable("expense");
             SqlQuery[] queries = querySearchCount(database, sqlTable, paging);
             SqlReader reader = database.getReader();
-            List<Entity> dataList = reader.find(sqlTable.getName(), queries[0]);
+            List<DataSet> dataList = reader.find(sqlTable.getName(), queries[0]);
             Number count = (Number) reader.getValue(queries[1]);
-            JsonArray dataArray = parseJsonArray(database, sqlTable, dataList);
-            result.add("project", dataArray);
+            JsonArray dataArray = toJsonArray(database, sqlTable, dataList);
+            result.add("expense", dataArray);
             setPaging(result, paging, count.intValue(), dataList.size());
         } catch (SQLException ex) {
             if (logger.isDebugEnabled()) {
@@ -47,37 +47,51 @@ public class ProjectService extends SqlMapper {
 
     @Path("/save")
     public JsonArray save(JsonArray req) throws SQLException {
-        SqlTable sqlTable = database.getTable("project");
-        List<Entity> entityList = parseEntities(database, sqlTable, req);
-        for (Entity entity : entityList) {
-            setStatus(entity);
-            String error = isValidRequired(sqlTable, "required", entity);
+        SqlTable sqlTable = database.getTable("expense");
+        List<DataModel> modelList = toDataModels(database, sqlTable, req);
+        List<DataSet> dataSets = new ArrayList<>();
+        for (DataModel model : modelList) {
+            setTransactionCode(model);
+            setStatus(model);
+            String error = isValidRequired(sqlTable, "required", model);
             if (error != null) {
                 throw new LocaleException(error);
             }
+            dataSets.add(model.as());
         }
         SqlTransaction transaction = database.beginTransaction();
-        transaction.save("project", "edit", "unique", entityList);
+        transaction.save("expense", "edit", dataSets);
         transaction.commit();
         return req;
     }
 
     @Path("/delete")
     public JsonArray delete(JsonArray req) throws SQLException {
-        SqlTable sqlTable = database.getTable("project");
-        List<Entity> entityList = parseEntities(database, sqlTable, req);
+        SqlTable sqlTable = database.getTable("expense");
+        List<DataSet> dataSets = toDataSets(database, sqlTable, req);
         SqlTransaction transaction = database.beginTransaction();
-        transaction.delete("project", entityList);
+        transaction.delete("expense", dataSets);
         transaction.commit();
         return req;
     }
 
-    private void setStatus(Entity source) {
+    private void setStatus(DataModel source) {
         String status = (String) source.getValue("status");
         if ("Active".equals(status) || "Inactive".equals(status)) {
             source.setValue("status", status);
         } else {
             source.setValue("status", "Active");
+        }
+    }
+
+    private void setTransactionCode(DataModel source) {
+        if (source.getValue("code") == null) {
+            UUID random = UUID.randomUUID();
+            String code = random.toString();
+            if (4 < code.length()) {
+                code = code.substring(0, 4);
+            }
+            source.setValue("code", code);
         }
     }
 }

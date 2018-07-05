@@ -1,9 +1,8 @@
-package sample.dcapture.sql.service;
+package sample.dcapture.db.service;
 
 import dcapture.io.LocaleException;
-import dcapture.io.Localization;
 import dcapture.io.Paging;
-import dcapture.sql.core.*;
+import dcapture.db.core.*;
 import org.apache.log4j.Logger;
 
 import javax.inject.Inject;
@@ -13,17 +12,16 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.ws.rs.Path;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 
-@Path("/user")
-public class AppsUserService extends SqlMapper {
-    private static final Logger logger = Logger.getLogger(AppsUserService.class);
+@Path("/currency")
+public class CurrencyService extends SqlMapper {
+    private static final Logger logger = Logger.getLogger(CurrencyService.class);
     private SqlDatabase database;
 
     @Inject
-    public AppsUserService(SqlDatabase database) {
+    public CurrencyService(SqlDatabase database) {
         this.database = database;
     }
 
@@ -32,13 +30,13 @@ public class AppsUserService extends SqlMapper {
         JsonObjectBuilder result = Json.createObjectBuilder();
         try {
             Paging paging = parsePaging(req);
-            SqlTable sqlTable = database.getTable("apps_user");
+            SqlTable sqlTable = database.getTable("currency");
             SqlQuery[] queries = querySearchCount(database, sqlTable, paging);
             SqlReader reader = database.getReader();
-            List<Entity> dataList = reader.find(sqlTable.getName(), queries[0]);
+            List<DataSet> dataList = reader.find(sqlTable.getName(), queries[0]);
             Number count = (Number) reader.getValue(queries[1]);
-            JsonArray dataArray = parseJsonArray(database, sqlTable, dataList);
-            result.add("apps_user", dataArray);
+            JsonArray dataArray = toJsonArray(database, sqlTable, dataList);
+            result.add("currency", dataArray);
             result.add("start", paging.getStart());
             result.add("limit", paging.getLimit());
             result.add("totalRecords", count.intValue());
@@ -53,32 +51,34 @@ public class AppsUserService extends SqlMapper {
 
     @Path("/save")
     public JsonArray save(JsonArray req) throws SQLException {
-        SqlTable sqlTable = database.getTable("apps_user");
-        List<Entity> entityList = parseEntities(database, sqlTable, req);
-        for (Entity entity : entityList) {
-            setStatus(entity);
-            String error = isValidRequired(sqlTable, "required", entity);
+        SqlTable sqlTable = database.getTable("currency");
+        List<DataModel> modelList = toDataModels(database, sqlTable, req);
+        List<DataSet> dataSets = new ArrayList<>();
+        for (DataModel model : modelList) {
+            setStatus(model);
+            String error = isValidRequired(sqlTable, "required", model);
             if (error != null) {
                 throw new LocaleException(error);
             }
+            dataSets.add(model.as());
         }
         SqlTransaction transaction = database.beginTransaction();
-        transaction.save("apps_user", "edit", "unique", entityList);
+        transaction.save("currency", "edit", dataSets);
         transaction.commit();
         return req;
     }
 
     @Path("/delete")
     public JsonArray delete(JsonArray req) throws SQLException {
-        SqlTable sqlTable = database.getTable("apps_user");
-        List<Entity> entityList = parseEntities(database, sqlTable, req);
+        SqlTable sqlTable = database.getTable("currency");
+        List<DataSet> dataSetList = toDataSets(database, sqlTable, req);
         SqlTransaction transaction = database.beginTransaction();
-        transaction.delete("apps_user", entityList);
+        transaction.delete("currency", dataSetList);
         transaction.commit();
         return req;
     }
 
-    private void setStatus(Entity source) {
+    private void setStatus(DataModel source) {
         String status = (String) source.getValue("status");
         if ("Active".equals(status) || "Inactive".equals(status)) {
             source.setValue("status", status);

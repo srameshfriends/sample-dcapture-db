@@ -25,7 +25,7 @@
     <div id="user-list">
         <div class="row">
             <div class="d-inline">
-                <a href="expense-form.html" data-locale="actionCreate" class="btn btn-primary"></a>
+                <button id="actionCreate" data-locale="actionCreate" class="btn btn-primary"></button>
             </div>
             <div class="form-inline ml-2">
                 <input id="searchText" placeholder="Search" class="form-control mr-sm-2" type="text"
@@ -158,6 +158,11 @@
         $("#actionSearch").click(function (evt) {
             evt.preventDefault();
             self.search(self.getSearchRequest(0));
+        });
+        $("#actionCreate").click(function (evt) {
+            evt.preventDefault();
+            SessionDB.set("expense", "{}");
+            window.location.href = "expense-form.html";
         });
         self.searchDelay = new CallFuture(1200);
         $("#searchText").keyup(function (evt) {

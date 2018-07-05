@@ -1,8 +1,8 @@
-package sample.dcapture.sql.service;
+package sample.dcapture.db.service;
 
 import dcapture.io.*;
-import dcapture.sql.core.*;
-import dcapture.sql.postgres.PgQuery;
+import dcapture.db.core.*;
+import dcapture.db.postgres.PgQuery;
 import org.apache.log4j.Logger;
 
 import javax.inject.Inject;
@@ -34,7 +34,7 @@ public class SessionService extends SqlMapper {
         if (request.getSession(false) == null) {
             response.send(getResponse("", "", "", "", false));
         } else {
-            Entity appsUser = (Entity) request.getSession(false).getAttribute("apps_user");
+            DataSet appsUser = (DataSet) request.getSession(false).getAttribute("apps_user");
             String email = appsUser.getString("email", "");
             String name = appsUser.getString("name", "");
             String id = request.getSession(false).getId();
@@ -68,22 +68,23 @@ public class SessionService extends SqlMapper {
             SqlTable sessionBatch = database.getTable("session_batch");
             SqlQuery query = querySelectAll(database, sessionBatch);
             query.add(" WHERE email = ?").setParameter(email).limit(1);
-            Entity entity = database.getReader().first("session_batch", query);
+            DataSet appsUser = database.getReader().first("session_batch", query);
             SqlTransaction transaction = database.beginTransaction();
             code = UUID.randomUUID().toString();
-            if (entity == null) {
-                entity = new Entity();
-                entity.setValue("email", email);
-                entity.setValue("code", code);
-                entity.setValue("created_on", LocalDateTime.now());
-                entity.setValue("client", getClientInfo(request));
-                transaction.insert("session_batch", "edit", entity);
+            DataModel model = new DataModel();
+            if (appsUser == null) {
+                model.setValue("email", email);
+                model.setValue("code", code);
+                model.setValue("created_on", LocalDateTime.now());
+                model.setValue("client", getClientInfo(request));
+                transaction.insert("session_batch", "edit", model.as());
             } else {
-                entity.setValue("email", email);
-                entity.setValue("code", code);
-                entity.setValue("created_on", LocalDateTime.now());
-                entity.setValue("client", getClientInfo(request));
-                transaction.update("session_batch", "edit", entity);
+                model = new DataModel(appsUser);
+                model.setValue("email", email);
+                model.setValue("code", code);
+                model.setValue("created_on", LocalDateTime.now());
+                model.setValue("client", getClientInfo(request));
+                transaction.update("session_batch", "edit", model);
             }
             transaction.commit();
             response.send(getResponse("", "", email, code, false));
@@ -97,7 +98,7 @@ public class SessionService extends SqlMapper {
             if (email != null) {
                 query = querySelectAll(database, "apps_user").add(" WHERE ")
                         .add(" email = ?").setParameter(email).limit(1);
-                Entity appsUser = database.getReader().first("apps_user", query);
+                DataSet appsUser = database.getReader().first("apps_user", query);
                 if (appsUser == null) {
                     response.error(locale.get("userOrPasswordNotValid"));
                 } else {

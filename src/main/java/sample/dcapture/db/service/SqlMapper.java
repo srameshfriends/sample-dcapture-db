@@ -1,9 +1,9 @@
-package sample.dcapture.sql.service;
+package sample.dcapture.db.service;
 
 import dcapture.io.JsonMapper;
 import dcapture.io.Paging;
-import dcapture.sql.core.*;
-import dcapture.sql.postgres.PgQuery;
+import dcapture.db.core.*;
+import dcapture.db.postgres.PgQuery;
 
 import javax.json.*;
 import java.math.BigDecimal;
@@ -20,13 +20,13 @@ public class SqlMapper extends JsonMapper {
     private static final SimpleDateFormat dateTimeFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
     private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm:ss");
 
-    public static Entity parseEntity(SqlDatabase database, SqlTable table, JsonObject obj) {
-        Entity entity = new Entity();
+    public static DataModel toDataModel(SqlDatabase database, SqlTable table, JsonObject obj) {
+        DataModel model = new DataModel();
         if (table.getPrimary() != null) {
-            entity.setId(getInt(obj, table.getPrimary().getName()));
+            model.setId(getLong(obj, table.getPrimary().getName()));
         }
         if (table.getVersion() != null) {
-            entity.setId(getInt(obj, table.getVersion().getName()));
+            model.setRev(getInt(obj, table.getVersion().getName()));
         }
         for (SqlColumn col : table.getColumns()) {
             JsonValue json = obj.get(col.getName());
@@ -38,13 +38,13 @@ public class SqlMapper extends JsonMapper {
                 if (refTable == null) {
                     throw new NullPointerException(col.toString() + " : Sql Column reference is table is null");
                 } else if (json instanceof JsonObject) {
-                    entity.setValue(col.getName(), parseEntity(database, refTable, (JsonObject) json));
+                    model.setValue(col.getName(), toDataSet(database, refTable, (JsonObject) json));
                 } else if (json instanceof JsonNumber) {
-                    entity.setValue(col.getName(), new Entity(((JsonNumber) json).intValue()));
+                    model.setValue(col.getName(), new DataSet(((JsonNumber) json).intValue()));
                 } else if (json instanceof JsonString) {
-                    int id = toInt(((JsonString) json).getString());
-                    if (0 < id) {
-                        entity.setValue(col.getName(), new Entity(id));
+                    long referenceId = toLong(((JsonString) json).getString());
+                    if (0 < referenceId) {
+                        model.setValue(col.getName(), new DataSet(referenceId));
                     }
                 } else {
                     throw new NullPointerException(col.toString() + " : is not a valid format > " + json.toString());
@@ -52,26 +52,26 @@ public class SqlMapper extends JsonMapper {
             } else if (json instanceof JsonString) {
                 String text = ((JsonString) json).getString();
                 if (String.class.equals(col.getModel())) {
-                    entity.setValue(col.getName(), text);
+                    model.setValue(col.getName(), text);
                 } else if (LocalDate.class.equals(col.getModel())) {
-                    entity.setValue(col.getName(), LocalDate.parse(text));
+                    model.setValue(col.getName(), LocalDate.parse(text));
                 } else if (LocalDateTime.class.equals(col.getModel())) {
-                    entity.setValue(col.getName(), LocalDateTime.parse(text));
+                    model.setValue(col.getName(), LocalDateTime.parse(text));
                 } else if (LocalTime.class.equals(col.getModel())) {
-                    entity.setValue(col.getName(), LocalTime.parse(text));
+                    model.setValue(col.getName(), LocalTime.parse(text));
                 } else if (Integer.class.equals(col.getModel())) {
-                    entity.setValue(col.getName(), toInt(text));
+                    model.setValue(col.getName(), toInt(text));
                 } else if (Double.class.equals(col.getModel())) {
-                    entity.setValue(col.getName(), toDouble(text));
+                    model.setValue(col.getName(), toDouble(text));
                 } else if (Long.class.equals(col.getModel())) {
-                    entity.setValue(col.getName(), toLong(text));
+                    model.setValue(col.getName(), toLong(text));
                 } else if (BigDecimal.class.equals(col.getModel())) {
-                    entity.setValue(col.getName(), toBigDecimal(text));
+                    model.setValue(col.getName(), toBigDecimal(text));
                 } else if (Boolean.class.equals(col.getModel())) {
                     if ("true".equals(text.toLowerCase())) {
-                        entity.setValue(col.getName(), true);
+                        model.setValue(col.getName(), true);
                     } else {
-                        entity.setValue(col.getName(), false);
+                        model.setValue(col.getName(), false);
                     }
                 } else {
                     throw new IllegalArgumentException(col.getModel() + " \t " + col.toString() + " convert to string format error : " + json.toString());
@@ -79,36 +79,129 @@ public class SqlMapper extends JsonMapper {
             } else if (json instanceof JsonNumber) {
                 JsonNumber number = ((JsonNumber) json);
                 if (Integer.class.equals(col.getModel())) {
-                    entity.setValue(col.getName(), number.intValue());
+                    model.setValue(col.getName(), number.intValue());
                 } else if (Double.class.equals(col.getModel())) {
-                    entity.setValue(col.getName(), number.doubleValue());
+                    model.setValue(col.getName(), number.doubleValue());
                 } else if (Long.class.equals(col.getModel())) {
-                    entity.setValue(col.getName(), number.longValue());
+                    model.setValue(col.getName(), number.longValue());
                 } else if (BigDecimal.class.equals(col.getModel())) {
-                    entity.setValue(col.getName(), number.bigDecimalValue());
+                    model.setValue(col.getName(), number.bigDecimalValue());
                 } else {
                     throw new IllegalArgumentException(col.getModel() + " \t " + col.toString() + " convert to number format error : " + json.toString());
                 }
             } else if (JsonValue.ValueType.TRUE.equals(json.getValueType())) {
-                entity.setValue(col.getName(), true);
+                model.setValue(col.getName(), true);
             } else if (JsonValue.ValueType.FALSE.equals(json.getValueType())) {
-                entity.setValue(col.getName(), false);
+                model.setValue(col.getName(), false);
             } else if (JsonValue.ValueType.NULL.equals(json.getValueType())) {
-                entity.setValue(col.getName(), null);
+                model.setValue(col.getName(), null);
             } else {
-                throw new IllegalArgumentException(col.getModel() + " \t " + col.toString() + " convert to entity data type not supported : " + json.toString());
+                throw new IllegalArgumentException(col.getModel() + " \t " + col.toString() + " convert to dataSet data type not supported : " + json.toString());
             }
         }
-        return entity;
+        return model;
     }
 
-    public static List<Entity> parseEntities(SqlDatabase database, SqlTable sqlTable, JsonArray array) {
-        List<Entity> entityList = new ArrayList<>();
+    public static DataSet toDataSet(SqlDatabase database, SqlTable table, JsonObject obj) {
+        long id = 0;
+        int rev = 0;
+        if (table.getPrimary() != null) {
+            id = getLong(obj, table.getPrimary().getName());
+        }
+        if (table.getVersion() != null) {
+            rev = getInt(obj, table.getVersion().getName());
+        }
+        Map<String, Object> values = new HashMap<>();
+        for (SqlColumn col : table.getColumns()) {
+            JsonValue json = obj.get(col.getName());
+            if (json == null) {
+                continue;
+            }
+            if (col.getReference() != null) {
+                SqlTable refTable = database.getTable(col.getReference());
+                if (refTable == null) {
+                    throw new NullPointerException(col.toString() + " : Sql Column reference is table is null");
+                } else if (json instanceof JsonObject) {
+                    values.put(col.getName(), toDataSet(database, refTable, (JsonObject) json));
+                } else if (json instanceof JsonNumber) {
+                    values.put(col.getName(), new DataSet(((JsonNumber) json).intValue()));
+                } else if (json instanceof JsonString) {
+                    id = toLong(((JsonString) json).getString());
+                    if (0 < id) {
+                        values.put(col.getName(), new DataSet(id));
+                    }
+                } else {
+                    throw new NullPointerException(col.toString() + " : is not a valid format > " + json.toString());
+                }
+            } else if (json instanceof JsonString) {
+                String text = ((JsonString) json).getString();
+                if (String.class.equals(col.getModel())) {
+                    values.put(col.getName(), text);
+                } else if (LocalDate.class.equals(col.getModel())) {
+                    values.put(col.getName(), LocalDate.parse(text));
+                } else if (LocalDateTime.class.equals(col.getModel())) {
+                    values.put(col.getName(), LocalDateTime.parse(text));
+                } else if (LocalTime.class.equals(col.getModel())) {
+                    values.put(col.getName(), LocalTime.parse(text));
+                } else if (Integer.class.equals(col.getModel())) {
+                    values.put(col.getName(), toInt(text));
+                } else if (Double.class.equals(col.getModel())) {
+                    values.put(col.getName(), toDouble(text));
+                } else if (Long.class.equals(col.getModel())) {
+                    values.put(col.getName(), toLong(text));
+                } else if (BigDecimal.class.equals(col.getModel())) {
+                    values.put(col.getName(), toBigDecimal(text));
+                } else if (Boolean.class.equals(col.getModel())) {
+                    if ("true".equals(text.toLowerCase())) {
+                        values.put(col.getName(), true);
+                    } else {
+                        values.put(col.getName(), false);
+                    }
+                } else {
+                    throw new IllegalArgumentException(col.getModel() + " \t " + col.toString() + " convert to string format error : " + json.toString());
+                }
+            } else if (json instanceof JsonNumber) {
+                JsonNumber number = ((JsonNumber) json);
+                if (Integer.class.equals(col.getModel())) {
+                    values.put(col.getName(), number.intValue());
+                } else if (Double.class.equals(col.getModel())) {
+                    values.put(col.getName(), number.doubleValue());
+                } else if (Long.class.equals(col.getModel())) {
+                    values.put(col.getName(), number.longValue());
+                } else if (BigDecimal.class.equals(col.getModel())) {
+                    values.put(col.getName(), number.bigDecimalValue());
+                } else {
+                    throw new IllegalArgumentException(col.getModel() + " \t " + col.toString() + " convert to number format error : " + json.toString());
+                }
+            } else if (JsonValue.ValueType.TRUE.equals(json.getValueType())) {
+                values.put(col.getName(), true);
+            } else if (JsonValue.ValueType.FALSE.equals(json.getValueType())) {
+                values.put(col.getName(), false);
+            } else if (JsonValue.ValueType.NULL.equals(json.getValueType())) {
+                values.put(col.getName(), null);
+            } else {
+                throw new IllegalArgumentException(col.getModel() + " \t " + col.toString() + " convert to dataSet data type not supported : " + json.toString());
+            }
+        }
+        return new DataSet(id, rev, values);
+    }
+
+    public static List<DataSet> toDataSets(SqlDatabase database, SqlTable sqlTable, JsonArray array) {
+        List<DataSet> dataSetList = new ArrayList<>();
         List<JsonObject> objectList = getList(array);
         for (JsonObject object : objectList) {
-            entityList.add(parseEntity(database, sqlTable, object));
+            dataSetList.add(toDataSet(database, sqlTable, object));
         }
-        return entityList;
+        return dataSetList;
+    }
+
+    public static List<DataModel> toDataModels(SqlDatabase database, SqlTable sqlTable, JsonArray array) {
+        List<DataModel> models = new ArrayList<>();
+        List<JsonObject> objectList = getList(array);
+        for (JsonObject object : objectList) {
+            models.add(toDataModel(database, sqlTable, object));
+        }
+        return models;
     }
 
     public static SqlQuery[] querySearchCount(SqlDatabase database, SqlTable sqlTable, Paging paging) {
@@ -128,7 +221,7 @@ public class SqlMapper extends JsonMapper {
         sb.replace(sb.length() - 1, sb.length(), " ");
         dataQuery.add(sb.toString()).add(" FROM ");
         countQuery.add(" FROM ");
-        if(database.getSchema() != null) {
+        if (database.getSchema() != null) {
             dataQuery.add(database.getSchema()).add(".");
             countQuery.add(database.getSchema()).add(".");
         }
@@ -142,10 +235,10 @@ public class SqlMapper extends JsonMapper {
         }
         dataQuery.add(" ORDER BY ");
         if (paging.getSortingOrder().isEmpty()) {
-            FetchGroup fetchGroup = sqlTable.getFetchGroup("search");
-            if (fetchGroup.getOrderBy() != null && 0 < fetchGroup.getOrderBy().length) {
+            ColumnGroup columnGroup = sqlTable.getColumnGroup("search");
+            if (columnGroup.getOrderBy() != null && 0 < columnGroup.getOrderBy().length) {
                 StringBuilder qsb = new StringBuilder();
-                for (String order : fetchGroup.getOrderBy()) {
+                for (String order : columnGroup.getOrderBy()) {
                     qsb.append(order).append(",");
                 }
                 qsb.replace(qsb.length() - 1, qsb.length(), " ");
@@ -186,7 +279,7 @@ public class SqlMapper extends JsonMapper {
         }
         sb.replace(sb.length() - 1, sb.length(), " ");
         query.add(sb.toString()).add(" FROM ");
-        if(database.getSchema() != null) {
+        if (database.getSchema() != null) {
             query.add(database.getSchema()).add(".");
         }
         query.add(sqlTable.getName()).add(" ");
@@ -203,29 +296,29 @@ public class SqlMapper extends JsonMapper {
         return paging;
     }
 
-    public static Entity merge(Entity target, Entity source) {
-        Entity result = new Entity(target.getId(), target.getRev());
-        result.addAll(source.getValues());
-        return result;
+    public static DataSet merge(DataSet target, DataSet source) {
+        Map<String, Object> values = new HashMap<>(target.getValues());
+        values.putAll(source.getValues());
+        return new DataSet(target.getId(), target.getRev(), values);
     }
 
-    public static JsonObject formatJsonObject(SqlDatabase database, SqlTable sqlTable, Entity entity) {
+    public static JsonObject toJsonObject(SqlDatabase database, SqlTable sqlTable, DataSet dataSet) {
         JsonObjectBuilder json = Json.createObjectBuilder();
         if (sqlTable.getPrimary() != null) {
-            json.add(sqlTable.getPrimary().getName(), entity.getId());
+            json.add(sqlTable.getPrimary().getName(), dataSet.getId());
         }
         if (sqlTable.getVersion() != null) {
-            json.add(sqlTable.getVersion().getName(), entity.getRev());
+            json.add(sqlTable.getVersion().getName(), dataSet.getRev());
         }
         for (SqlColumn col : sqlTable.getColumns()) {
-            Object value = entity.getValue(col.getName());
+            Object value = dataSet.getValue(col.getName());
             if (value != null) {
-                if (value instanceof Entity) {
+                if (value instanceof DataSet) {
                     SqlTable refTable = database.getTable(col.getReference());
                     if (refTable == null) {
                         throw new NullPointerException(col.toString() + " : Sql Column reference is table is null");
                     }
-                    json.add(col.getName(), formatJsonObject(database, refTable, (Entity) value));
+                    json.add(col.getName(), toJsonObject(database, refTable, (DataSet) value));
                 } else if (value instanceof String) {
                     json.add(col.getName(), (String) value);
                 } else if (value instanceof Integer) {
@@ -282,20 +375,20 @@ public class SqlMapper extends JsonMapper {
         return json.build();
     }
 
-    public static JsonArray parseJsonArray(SqlDatabase database, SqlTable sqlTable, List<Entity> entityList) {
+    static JsonArray toJsonArray(SqlDatabase database, SqlTable sqlTable, List<DataSet> dataSetList) {
         JsonArrayBuilder array = Json.createArrayBuilder();
-        if (entityList != null) {
-            for (Entity entity : entityList) {
-                array.add(formatJsonObject(database, sqlTable, entity));
+        if (dataSetList != null) {
+            for (DataSet dataSet : dataSetList) {
+                array.add(toJsonObject(database, sqlTable, dataSet));
             }
         }
         return array.build();
     }
 
-    public static String isValidRequired(SqlTable sqlTable, String fetchGroup, Entity entity) {
-        FetchGroup group = sqlTable.getFetchGroup(fetchGroup);
+    static String isValidRequired(SqlTable sqlTable, String columnGroup, DataSet dataSet) {
+        ColumnGroup group = sqlTable.getColumnGroup(columnGroup);
         for (String col : group.getColumns()) {
-            Object value = entity.getValue(col);
+            Object value = dataSet.getValue(col);
             if (value == null) {
                 return sqlTable.getName() + "." + col + ".invalid";
             } else if (value instanceof String) {

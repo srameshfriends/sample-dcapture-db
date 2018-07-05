@@ -1,18 +1,18 @@
-package sample.dcapture.sql.dev;
+package sample.dcapture.db.dev;
 
 import dcapture.io.BaseSettings;
 import dcapture.io.DispatcherRegistry;
 import dcapture.io.Localization;
 import dcapture.io.SettingsFactory;
-import dcapture.sql.core.SqlDatabase;
-import dcapture.sql.core.SqlForwardTool;
-import dcapture.sql.core.SqlLogger;
-import dcapture.sql.core.SqlTable;
-import dcapture.sql.postgres.PgDatabase;
+import dcapture.db.core.SqlDatabase;
+import dcapture.db.core.SqlForwardTool;
+import dcapture.db.core.SqlLogger;
+import dcapture.db.core.SqlTable;
+import dcapture.db.postgres.PgDatabase;
 import io.github.pustike.inject.Injector;
 import io.github.pustike.inject.bind.Binder;
 import org.apache.log4j.Logger;
-import sample.dcapture.sql.service.*;
+import sample.dcapture.db.service.*;
 
 import java.io.File;
 import java.sql.SQLException;
@@ -79,6 +79,7 @@ public class Registry implements DispatcherRegistry, SqlLogger {
         database.config("password", SettingsFactory.decode(dbs[2]));
         database.config("autoCommit", false);
         database.config("tables", tableList);
+        database.config("logger", this);
         database.start(SqlForwardTool.class.getSimpleName());
         return database;
     }

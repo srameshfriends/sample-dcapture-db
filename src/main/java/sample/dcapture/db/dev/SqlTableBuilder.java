@@ -1,15 +1,14 @@
-package sample.dcapture.sql.dev;
+package sample.dcapture.db.dev;
 
-import dcapture.sql.core.FetchGroup;
-import dcapture.sql.core.SqlColumn;
-import dcapture.sql.core.SqlTable;
-import dcapture.sql.core.SqlTypeMap;
+import dcapture.db.core.*;
 
 import javax.json.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 class SqlTableBuilder {
     private SqlTypeMap sqlTypeMap;
@@ -55,7 +54,7 @@ class SqlTableBuilder {
         return null;
     }
 
-    private FetchGroup getFetchGroup(SqlTable sqlTable, JsonObject obj) {
+    private ColumnGroup getColumnGroup(SqlTable sqlTable, JsonObject obj) {
         List<String> columnList = new ArrayList<>();
         for (SqlColumn column : sqlTable.getColumns()) {
             columnList.add(column.getName());
@@ -66,39 +65,36 @@ class SqlTableBuilder {
         if (columnArray == null || columnArray.isEmpty()) {
             return null;
         }
-        List<String> fetchColList = new ArrayList<>();
+        List<String> fetchList = new ArrayList<>();
         for (JsonValue value : columnArray) {
             if (value instanceof JsonString) {
                 String col = ((JsonString) value).getString();
                 col = col.trim().toLowerCase();
                 if (columnList.contains(col)) {
-                    fetchColList.add(col);
+                    fetchList.add(col);
                 }
             }
         }
-        if (fetchColList.isEmpty()) {
+        if (fetchList.isEmpty()) {
             return null;
         }
-        List<String> orderByColList = new ArrayList<>();
+        List<String> orderByList = new ArrayList<>();
         if (orderByArray != null && !orderByArray.isEmpty()) {
             for (JsonValue orderBy : orderByArray) {
                 if (orderBy instanceof JsonString) {
                     String col = ((JsonString) orderBy).getString();
                     col = col.trim().toLowerCase();
                     if (columnList.contains(col)) {
-                        orderByColList.add(col);
+                        orderByList.add(col);
                     }
                 }
             }
         }
-        if (orderByColList.isEmpty()) {
-            orderByColList.add(fetchColList.get(0));
+        if (orderByList.isEmpty()) {
+            orderByList.add(fetchList.get(0));
         }
-        FetchGroup fetchGroup = new FetchGroup(sqlTable.getName(), name);
-        fetchGroup.setColumns(fetchColList);
-        String[] orderByStrings = new String[orderByColList.size()];
-        fetchGroup.setOrderBy(orderByColList.toArray(orderByStrings));
-        return fetchGroup;
+        String[] obc = new String[orderByList.size()];
+        return new ColumnGroup(sqlTable.getName(), name, fetchList, orderByList.toArray(obc));
     }
 
     private SqlColumn getSqlColumn(SqlTable sqlTable, JsonObject obj) {
@@ -106,7 +102,7 @@ class SqlTableBuilder {
         String type = getString(obj, "type");
         String fieldName = getString(obj, "field");
         String reference = getString(obj, "reference");
-
+        String columnGroup = getString(obj, "columnGroup");
         if (name == null || name.trim().isEmpty()) {
             throw new NullPointerException("Table : " + sqlTable.getName() + " >> column name should not be null or empty");
         }
@@ -124,16 +120,17 @@ class SqlTableBuilder {
             throw new NullPointerException("Table : " + sqlTable.getName()
                     + ", Table Type : " + sqlTable.getType()
                     + ", Column : " + name + ", Field : " + fieldName + ", Model : " + model
-                    + " >> sql data type not supported");
+                    + " >> db data type not supported");
         }
         if (model == null) {
             throw new NullPointerException("Table : " + sqlTable.getName()
                     + ", Table Type : " + sqlTable.getType()
                     + ", Column : " + name + ", Field : " + fieldName
-                    + " >> sql data model should not be null");
+                    + " >> db data model should not be null");
         }
         SqlColumn sqlColumn = new SqlColumn(sqlTable.getName(), name, sqlType, model);
         sqlColumn.setReference(reference);
+        sqlColumn.setColumnGroup(columnGroup);
         sqlColumn.setField(fieldName);
         sqlColumn.setLength(getInt(obj, "length"));
         sqlColumn.setAutoIncrement(getBoolean(obj, "autoIncrement"));
@@ -142,13 +139,15 @@ class SqlTableBuilder {
     }
 
     private SqlTable getSqlTable(JsonObject obj) {
+        boolean isColumnGroupEmpty = false;
         String tableName = getString(obj, "name");
         String type = getString(obj, "type");
         String modelText = getString(obj, "model");
         boolean isPrimary = getBoolean(obj, "primary");
         boolean isVersion = getBoolean(obj, "version");
         JsonArray columns = getJsonArray(obj, "columns");
-        JsonArray fgArray = getJsonArray(obj, "fetchGroups");
+        JsonArray uniqueColumnArray = getJsonArray(obj, "uniqueColumns");
+        JsonArray fgArray = getJsonArray(obj, "columnGroups");
         Class<?> model = getType(modelText, tableName);
         if (tableName == null || tableName.trim().isEmpty()) {
             throw new NullPointerException(tableName + " : \t table name should not be null or empty");
@@ -170,20 +169,38 @@ class SqlTableBuilder {
             }
         }
         sqlTable.setColumns(columnList);
-        boolean isEmptyGroup = false;
-        List<FetchGroup> fetchGroups = new ArrayList<>();
+        Set<String> columnNameSet = new HashSet<>();
+        for(SqlColumn column : columnList) {
+            columnNameSet.add(column.getName());
+        }
+        if(uniqueColumnArray != null && 0 < uniqueColumnArray.size()) {
+            List<String> uniqueColList = new ArrayList<>();
+            for (JsonValue uc : uniqueColumnArray) {
+                if (uc instanceof JsonString) {
+                    String uniqueCol = ((JsonString)uc).getString();
+                    if(columnNameSet.contains(uniqueCol)) {
+                        uniqueColList.add(uniqueCol);
+                    }
+                }
+            }
+            if(!uniqueColList.isEmpty()) {
+                int ucs = uniqueColList.size();
+                sqlTable.setUniqueColumns(uniqueColList.toArray(new String[ucs]));
+            }
+        }
+        List<ColumnGroup> columnGroups = new ArrayList<>();
         if (fgArray != null) {
             for (JsonValue entry : fgArray) {
                 if (entry instanceof JsonObject) {
-                    FetchGroup fetchGroup = getFetchGroup(sqlTable, (JsonObject) entry);
-                    if (fetchGroup != null) {
-                        fetchGroups.add(fetchGroup);
-                        isEmptyGroup = fetchGroup.getName().equals("");
+                    ColumnGroup columnGroup = getColumnGroup(sqlTable, (JsonObject) entry);
+                    if (columnGroup != null) {
+                        columnGroups.add(columnGroup);
+                        isColumnGroupEmpty = columnGroup.getName().equals("");
                     }
                 }
             }
         }
-        if (!isEmptyGroup) {
+        if (!isColumnGroupEmpty) {
             List<String> colList = new ArrayList<>();
             for (SqlColumn column : columnList) {
                 colList.add(column.getName());
@@ -194,12 +211,9 @@ class SqlTableBuilder {
             } else {
                 orderBy = new String[]{colList.get(0)};
             }
-            FetchGroup emptyGroup = new FetchGroup(sqlTable.getName(), "");
-            emptyGroup.setColumns(colList);
-            emptyGroup.setOrderBy(orderBy);
-            fetchGroups.add(emptyGroup);
+            columnGroups.add(new ColumnGroup(sqlTable.getName(), "", colList, orderBy));
         }
-        sqlTable.setFetchGroups(fetchGroups);
+        sqlTable.setColumnGroups(columnGroups);
         return sqlTable;
     }
 

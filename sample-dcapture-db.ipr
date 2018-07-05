@@ -6,11 +6,11 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="sample-dcapture-sql" />
+        <module name="sample-dcapture-db" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="sample-dcapture-sql" target="1.8" />
+      <module name="sample-dcapture-db" target="1.8" />
     </bytecodeTargetLevel>
   </component>
   <component name="ExternalStorageConfigurationManager" enabled="true" />
@@ -153,7 +153,7 @@
   </component>
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/sample-dcapture-sql.iml" filepath="$PROJECT_DIR$/sample-dcapture-sql.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sample-dcapture-db.iml" filepath="$PROJECT_DIR$/sample-dcapture-db.iml" />
     </modules>
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_1_3" project-jdk-name="1.8" project-jdk-type="JavaSDK">
@@ -185,6 +185,17 @@
         <root url="jar://$MAVEN_REPOSITORY$/commons-logging/commons-logging/1.2/commons-logging-1.2-sources.jar!/" />
       </SOURCES>
     </library>
+    <library name="Maven: dcapture:dcapture-db:1.0">
+      <CLASSES>
+        <root url="jar://$MAVEN_REPOSITORY$/dcapture/dcapture-db/1.0/dcapture-db-1.0.jar!/" />
+      </CLASSES>
+      <JAVADOC>
+        <root url="jar://$MAVEN_REPOSITORY$/dcapture/dcapture-db/1.0/dcapture-db-1.0-javadoc.jar!/" />
+      </JAVADOC>
+      <SOURCES>
+        <root url="jar://$MAVEN_REPOSITORY$/dcapture/dcapture-db/1.0/dcapture-db-1.0-sources.jar!/" />
+      </SOURCES>
+    </library>
     <library name="Maven: dcapture:dcapture-io:1.0">
       <CLASSES>
         <root url="jar://$MAVEN_REPOSITORY$/dcapture/dcapture-io/1.0/dcapture-io-1.0.jar!/" />
@@ -194,17 +205,6 @@
       </JAVADOC>
       <SOURCES>
         <root url="jar://$MAVEN_REPOSITORY$/dcapture/dcapture-io/1.0/dcapture-io-1.0-sources.jar!/" />
-      </SOURCES>
-    </library>
-    <library name="Maven: dcapture:dcapture-sql:1.0">
-      <CLASSES>
-        <root url="jar://$MAVEN_REPOSITORY$/dcapture/dcapture-sql/1.0/dcapture-sql-1.0.jar!/" />
-      </CLASSES>
-      <JAVADOC>
-        <root url="jar://$MAVEN_REPOSITORY$/dcapture/dcapture-sql/1.0/dcapture-sql-1.0-javadoc.jar!/" />
-      </JAVADOC>
-      <SOURCES>
-        <root url="jar://$MAVEN_REPOSITORY$/dcapture/dcapture-sql/1.0/dcapture-sql-1.0-sources.jar!/" />
       </SOURCES>
     </library>
     <library name="Maven: io.github.pustike:pustike-inject:1.4.0">

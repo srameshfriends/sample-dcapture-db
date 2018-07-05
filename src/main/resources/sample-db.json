@@ -3,6 +3,7 @@
     "name": "apps_user",
     "group": "master",
     "primary": true,
+    "uniqueColumns": ["email"],
     "columns": [
       {
         "name": "email",
@@ -21,7 +22,7 @@
         "type": "string"
       }
     ],
-    "fetchGroups": [
+    "columnGroups": [
       {
         "name": "edit",
         "columns": [
@@ -48,12 +49,6 @@
           "email",
           "name"
         ]
-      },
-      {
-        "name": "unique",
-        "columns": [
-          "email"
-        ]
       }
     ]
   },
@@ -61,6 +56,7 @@
     "name": "session_batch",
     "group": "transaction",
     "primary": true,
+    "uniqueColumns": ["email"],
     "columns": [
       {
         "name": "code",
@@ -79,7 +75,7 @@
         "type": "localdatetime"
       }
     ],
-    "fetchGroups": [
+    "columnGroups": [
       {
         "name": "edit",
         "columns": [
@@ -91,12 +87,6 @@
         "orderBy": [
           "email"
         ]
-      },
-      {
-        "name": "unique",
-        "columns": [
-          "email"
-        ]
       }
     ]
   },
@@ -104,6 +94,7 @@
     "name": "expense_category",
     "group": "master",
     "primary": true,
+    "uniqueColumns": ["code"],
     "columns": [
       {
         "name": "code",
@@ -118,7 +109,7 @@
         "type": "string"
       }
     ],
-    "fetchGroups": [
+    "columnGroups": [
       {
         "name": "edit",
         "columns": [
@@ -144,12 +135,6 @@
           "code",
           "name"
         ]
-      },
-      {
-        "name": "unique",
-        "columns": [
-          "code"
-        ]
       }
     ]
   },
@@ -157,6 +142,7 @@
     "name": "currency",
     "group": "master",
     "primary": true,
+    "uniqueColumns": ["code"],
     "columns": [
       {
         "name": "code",
@@ -179,7 +165,7 @@
         "type": "string"
       }
     ],
-    "fetchGroups": [
+    "columnGroups": [
       {
         "name": "edit",
         "columns": [
@@ -208,12 +194,6 @@
           "code",
           "name"
         ]
-      },
-      {
-        "name": "unique",
-        "columns": [
-          "code"
-        ]
       }
     ]
   },
@@ -221,6 +201,7 @@
     "name": "project",
     "group": "master",
     "primary": true,
+    "uniqueColumns": ["code"],
     "columns": [
       {
         "name": "code",
@@ -235,7 +216,7 @@
         "type": "string"
       }
     ],
-    "fetchGroups": [
+    "columnGroups": [
       {
         "name": "edit",
         "columns": [
@@ -261,12 +242,6 @@
           "code",
           "name"
         ]
-      },
-      {
-        "name": "unique",
-        "columns": [
-          "code"
-        ]
       }
     ]
   },
@@ -274,6 +249,7 @@
     "name": "expense",
     "type": "transaction",
     "primary": true,
+    "uniqueColumns": ["code"],
     "columns": [
       {
         "name": "code",
@@ -282,7 +258,7 @@
       {
         "name": "created_by",
         "type": "object",
-        "reference": "user_account"
+        "reference": "apps_user"
       },
       {
         "name": "expense_date",
@@ -295,12 +271,14 @@
       {
         "name": "expense_category",
         "type": "object",
-        "reference": "expense_category"
+        "reference": "expense_category",
+        "columnGroup":"required"
       },
       {
         "name": "currency",
         "type": "object",
-        "reference": "currency"
+        "reference": "currency",
+        "columnGroup":"required"
       },
       {
         "name": "amount",
@@ -311,7 +289,7 @@
         "type": "string"
       }
     ],
-    "fetchGroups": [
+    "columnGroups": [
       {
         "name": "edit",
         "columns": [
@@ -343,12 +321,6 @@
         "columns": [
           "code",
           "description"
-        ]
-      },
-      {
-        "name": "unique",
-        "columns": [
-          "code"
         ]
       }
     ]

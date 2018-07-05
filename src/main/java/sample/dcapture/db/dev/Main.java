@@ -1,25 +1,10 @@
-package sample.dcapture.sql.dev;
+package sample.dcapture.db.dev;
 
 import dcapture.io.*;
-import dcapture.sql.core.SqlDatabase;
-import dcapture.sql.core.SqlForwardTool;
-import dcapture.sql.core.SqlLogger;
-import dcapture.sql.core.SqlTable;
-import dcapture.sql.postgres.PgDatabase;
-import io.github.pustike.inject.Injector;
-import io.github.pustike.inject.bind.Binder;
-import org.apache.log4j.Logger;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Main extends Registry implements Runnable {
 

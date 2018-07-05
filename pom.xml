@@ -72,7 +72,7 @@
 
         <dependency>
             <groupId>dcapture</groupId>
-            <artifactId>dcapture-sql</artifactId>
+            <artifactId>dcapture-db</artifactId>
             <version>${dcapture}</version>
         </dependency>
 

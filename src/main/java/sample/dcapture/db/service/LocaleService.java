@@ -1,4 +1,4 @@
-package sample.dcapture.sql.service;
+package sample.dcapture.db.service;
 
 import dcapture.io.Localization;
 
