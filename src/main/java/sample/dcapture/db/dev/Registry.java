@@ -1,37 +1,31 @@
 package sample.dcapture.db.dev;
 
-import dcapture.io.BaseSettings;
-import dcapture.io.DispatcherRegistry;
-import dcapture.io.Localization;
-import dcapture.io.SettingsFactory;
 import dcapture.db.core.SqlDatabase;
 import dcapture.db.core.SqlForwardTool;
 import dcapture.db.core.SqlLogger;
 import dcapture.db.core.SqlTable;
 import dcapture.db.postgres.PgDatabase;
+import dcapture.io.BaseSettings;
+import dcapture.io.DispatcherRegistry;
+import dcapture.io.Localization;
 import io.github.pustike.inject.Injector;
 import io.github.pustike.inject.bind.Binder;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import sample.dcapture.db.service.*;
 
-import java.io.File;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Registry implements DispatcherRegistry, SqlLogger {
-    static final Logger logger = Logger.getLogger(Registry.class);
-
-    BaseSettings getBaseSettings() throws Exception {
-        File settingsFile = SettingsFactory.getClassPath(Registry.class, "settings.json");
-        return SettingsFactory.loadBaseSetting(Registry.class, settingsFile);
-    }
+    private static final Logger logger = LogManager.getLogger(Registry.class);
 
     @Override
     public void inject(Binder binder) {
         try {
-            BaseSettings settings = getBaseSettings();
-            Localization localization = SettingsFactory.getLocalization("en", settings.getLocaleFolder());
+            BaseSettings settings = BaseSettings.load(Registry.class);
+            Localization localization = Localization.development(Registry.class);
             binder.bind(BaseSettings.class).toInstance(settings);
             binder.bind(Localization.class).toInstance(localization);
             binder.bind(SqlDatabase.class).toInstance(getDatabase(settings));
@@ -69,14 +63,12 @@ public class Registry implements DispatcherRegistry, SqlLogger {
     private SqlDatabase getDatabase(BaseSettings settings) throws Exception {
         SqlDatabase database = new PgDatabase();
         SqlTableBuilder tableBuilder = new SqlTableBuilder();
-        File schemaFile = SettingsFactory.getClassPath(Registry.class, "sample-db.json");
-        List<SqlTable> tableList = tableBuilder.getTableList(database.getTypeMap(), schemaFile);
-        String[] dbs = settings.getDatabase("expenses");
+        List<SqlTable> tableList = tableBuilder.getTableList(database.getTypeMap(), settings.getDatabaseConfig());
         database.config("logger", this);
         database.config("schema", "dcapture");
-        database.config("url", dbs[0]);
-        database.config("user", SettingsFactory.decode(dbs[1]));
-        database.config("password", SettingsFactory.decode(dbs[2]));
+        database.config("url", settings.getDatabaseUrl());
+        database.config("user", BaseSettings.decode(settings.getDatabaseUser()));
+        database.config("password", BaseSettings.decode(settings.getDatabasePassword()));
         database.config("autoCommit", false);
         database.config("tables", tableList);
         database.config("logger", this);

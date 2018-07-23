@@ -1,10 +1,11 @@
 package sample.dcapture.db.dev;
 
-import dcapture.db.core.*;
+import dcapture.db.core.ColumnGroup;
+import dcapture.db.core.SqlColumn;
+import dcapture.db.core.SqlTable;
+import dcapture.db.core.SqlTypeMap;
 
 import javax.json.*;
-import java.io.File;
-import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -170,20 +171,20 @@ class SqlTableBuilder {
         }
         sqlTable.setColumns(columnList);
         Set<String> columnNameSet = new HashSet<>();
-        for(SqlColumn column : columnList) {
+        for (SqlColumn column : columnList) {
             columnNameSet.add(column.getName());
         }
-        if(uniqueColumnArray != null && 0 < uniqueColumnArray.size()) {
+        if (uniqueColumnArray != null && 0 < uniqueColumnArray.size()) {
             List<String> uniqueColList = new ArrayList<>();
             for (JsonValue uc : uniqueColumnArray) {
                 if (uc instanceof JsonString) {
-                    String uniqueCol = ((JsonString)uc).getString();
-                    if(columnNameSet.contains(uniqueCol)) {
+                    String uniqueCol = ((JsonString) uc).getString();
+                    if (columnNameSet.contains(uniqueCol)) {
                         uniqueColList.add(uniqueCol);
                     }
                 }
             }
-            if(!uniqueColList.isEmpty()) {
+            if (!uniqueColList.isEmpty()) {
                 int ucs = uniqueColList.size();
                 sqlTable.setUniqueColumns(uniqueColList.toArray(new String[ucs]));
             }
@@ -217,19 +218,13 @@ class SqlTableBuilder {
         return sqlTable;
     }
 
-    List<SqlTable> getTableList(SqlTypeMap sqlTypeMap, File jsonFile) {
+    List<SqlTable> getTableList(SqlTypeMap sqlTypeMap, JsonArray array) {
         this.sqlTypeMap = sqlTypeMap;
         List<SqlTable> tableList = new ArrayList<>();
-        try {
-            JsonReader reader = Json.createReader(new FileInputStream(jsonFile));
-            JsonArray array = reader.readArray();
-            for (JsonValue value : array) {
-                if (value instanceof JsonObject) {
-                    tableList.add(getSqlTable((JsonObject) value));
-                }
+        for (JsonValue value : array) {
+            if (value instanceof JsonObject) {
+                tableList.add(getSqlTable((JsonObject) value));
             }
-        } catch (Exception ex) {
-            ex.printStackTrace();
         }
         return tableList;
     }

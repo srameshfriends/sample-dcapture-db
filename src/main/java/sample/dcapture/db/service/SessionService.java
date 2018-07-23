@@ -1,9 +1,12 @@
 package sample.dcapture.db.service;
 
-import dcapture.io.*;
 import dcapture.db.core.*;
 import dcapture.db.postgres.PgQuery;
-import org.apache.log4j.Logger;
+import dcapture.io.JsonRequest;
+import dcapture.io.JsonResponse;
+import dcapture.io.Localization;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.inject.Inject;
 import javax.json.Json;
@@ -19,7 +22,7 @@ import java.util.UUID;
 
 @Path("/session")
 public class SessionService extends SqlMapper {
-    private static final Logger logger = Logger.getLogger(SessionService.class);
+    private static final Logger logger = LogManager.getLogger(SessionService.class);
     private SqlDatabase database;
     private Localization locale;
 

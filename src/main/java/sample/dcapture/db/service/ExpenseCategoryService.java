@@ -1,9 +1,10 @@
 package sample.dcapture.db.service;
 
+import dcapture.db.core.*;
 import dcapture.io.LocaleException;
 import dcapture.io.Paging;
-import dcapture.db.core.*;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.inject.Inject;
 import javax.json.Json;
@@ -17,7 +18,7 @@ import java.util.List;
 
 @Path("/expense_category")
 public class ExpenseCategoryService extends SqlMapper {
-    private static final Logger logger = Logger.getLogger(ExpenseCategoryService.class);
+    private static final Logger logger = LogManager.getLogger(ExpenseCategoryService.class);
     private SqlDatabase database;
 
     @Inject
