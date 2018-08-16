@@ -1,9 +1,9 @@
 package sample.dcapture.db.service;
 
-import dcapture.io.JsonMapper;
-import dcapture.io.Paging;
 import dcapture.db.core.*;
 import dcapture.db.postgres.PgQuery;
+import dcapture.io.JsonMapper;
+import dcapture.io.Paging;
 
 import javax.json.*;
 import java.math.BigDecimal;
@@ -274,9 +274,7 @@ public class SqlMapper extends JsonMapper {
             query.add(sqlTable.getVersion().getName()).add(",");
         }
         StringBuilder sb = new StringBuilder();
-        for (SqlColumn col : sqlTable.getColumns()) {
-            sb.append(col.getName()).append(",");
-        }
+        sqlTable.getColumns().forEach(col -> sb.append(col.getName()).append(","));
         sb.replace(sb.length() - 1, sb.length(), " ");
         query.add(sb.toString()).add(" FROM ");
         if (database.getSchema() != null) {
@@ -300,6 +298,10 @@ public class SqlMapper extends JsonMapper {
         Map<String, Object> values = new HashMap<>(target.getValues());
         values.putAll(source.getValues());
         return new DataSet(target.getId(), target.getRev(), values);
+    }
+
+    public static JsonObject toJsonObject(SqlDatabase database, String table, DataSet dataSet) {
+        return toJsonObject(database, database.getTable(table), dataSet);
     }
 
     public static JsonObject toJsonObject(SqlDatabase database, SqlTable sqlTable, DataSet dataSet) {

@@ -1,31 +1,6 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="Ramesh Annachi">
-    <title data-locale="currency"></title>
-    <link rel="icon" href="../favicon.ico">
-    <link href="../css/bootstrap.min.css" rel="stylesheet">
-    <link href="../css/fa-svg-with-js.css" rel="stylesheet">
-    <link href="../css/main.css" rel="stylesheet">
-    <script src="../js/jquery-3.3.1.min.js"></script>
-    <script src="../js/bootstrap.min.js"></script>
-    <script src="../js/fontawesome-all.min.js"></script>
-    <script src="../js/js.cookie.min.js"></script>
-    <script src="../js/simple-grid.js"></script>
-    <script src="../js/form-fields.js"></script>
-    <script src="../js/main.js"></script>
-</head>
-
-<body>
-
-<nav id="nav" class="navbar fixed-top navbar-expand-lg navbar-light bg-light"></nav>
-
-<main role="main" class="container">
+<div class="container">
     <div id="form-div" class="row">
-        <div class="mx-auto">
+        <div class="mx-auto manage-max">
             <div class="card">
                 <div class="card-header">
                     <span id="actionBack">
@@ -79,7 +54,7 @@
                         <div class="form-group row">
                             <label class="col-lg-4 col-form-label form-control-label"></label>
                             <div class="col-lg-8">
-                                <input id="actionSave" type="submit" class="btn btn-primary" value="Save">
+                                <button id="actionSave" data-locale="actionSave" class="btn btn-outline-primary"></button>
                             </div>
                         </div>
                     </form>
@@ -87,41 +62,41 @@
             </div>
         </div>
     </div>
-
     <div id="list-div">
-
         <div class="row">
             <div class="d-inline">
-                <button id="actionCreate" data-locale="actionCreate" class="btn btn-primary" type="submit"></button>
+                <button id="actionCreate" data-locale="actionCreate" class="btn btn-primary"></button>
             </div>
             <div class="form-inline ml-2">
-                <input id="searchText" placeholder="Search" class="form-control mr-sm-2" type="text"
+                <input id="searchText" placeholder="Search" class="form-control mr-2" type="text"
                        aria-label="Search">
-                <button id="actionSearch" class="btn btn-outline-info my-2 my-sm-0" type="button">
-                    <i class="fas fa-search icon-blue"></i>
-                </button>
-                <button id="actionPrevious" class="btn btn-outline-info my-2 my-sm-0 ml-2" type="button">
-                    <i class="fas fa-chevron-left icon-blue"></i>
-                </button>
-                <button id="actionNext" class="btn btn-outline-info my-2 my-sm-0  ml-3" type="button">
-                    <i class="fas  fa-chevron-right icon-blue"></i>
-                </button>
-                <label id="pagingInfo" class="btn  ml-2">1 - 5 of 2</label>
-
+                <div class="btn-group" role="group">
+                    <button id="actionSearch" class="btn btn-outline-primary" type="button">
+                        <i class="fas fa-search icon-blue"></i>
+                    </button>
+                    <button id="actionPrevious" class="btn btn-outline-secondary" type="button">
+                        <i class="fas fa-chevron-left icon-blue"></i>
+                    </button>
+                    <button id="actionNext" class="btn btn-outline-secondary" type="button">
+                        <i class="fas  fa-chevron-right icon-blue"></i>
+                    </button>
+                </div>
+                <label id="pagingInfo" class="btn  ml-2">-</label>
+                <div class="btn-group" role="group">
+                    <button id="actionDelete" data-locale="actionDelete" class="btn btn-outline-danger"></button>
+                </div>
             </div>
         </div>
-
         <div class="row mt-3">
-            <table class="table">
+            <table class="table table-bordered">
                 <thead data-id="currencyList">
                 <tr>
-                    <th data-id="currencyList.actionEdit" data-locale="actionEdit" width="40px"></th>
-                    <th data-id="currencyList.code" data-locale="currency.code"></th>
-                    <th data-id="currencyList.name" data-locale="currency.name"></th>
-                    <th data-id="currencyList.symbol" data-locale="currency.symbol"></th>
-                    <th data-id="currencyList.precision" data-locale="currency.precision"></th>
-                    <th data-id="currencyList.status" data-locale="currency.status"></th>
-                    <th data-id="currencyList.actionDelete" data-locale="actionDelete" width="40px"></th>
+                    <th data-type="selectable" width="40px"></th>
+                    <th data-type="link" data-id="currencyList.code" data-locale="currency.code"></th>
+                    <th data-type="text" data-id="currencyList.name" data-locale="currency.name"></th>
+                    <th data-type="text" data-id="currencyList.symbol" data-locale="currency.symbol"></th>
+                    <th data-type="text" data-id="currencyList.precision" data-locale="currency.precision"></th>
+                    <th data-type="text" data-id="currencyList.status" data-locale="currency.status"></th>
                 </tr>
                 </thead>
                 <tbody data-id="currencyList">
@@ -129,33 +104,25 @@
             </table>
         </div>
     </div>
-</main>
-
+</div>
 <script>
-
     function CurrencyView() {
         let self = this;
+        self.getId = function () {
+            return "currency";
+        };
         self.formDiv = $("#form-div");
         self.listDiv = $("#list-div");
         self.model = {name: "currency"};
-        self.paging = {};
-        self.paging.totalRecords = 0;
+        self.paging = {limit: 10, start: 0, totalRecords: 0, isPrevious: false, isNext: false, sortList: []};
         self.paging.previous = $("#actionPrevious");
         self.paging.info = $("#pagingInfo");
         self.paging.next = $("#actionNext");
-        self.paging.start = 0;
-        self.paging.limit = 10;
-        self.paging.isPrevious = false;
-        self.paging.isNext = false;
-        self.paging.sortList = [];
-        self.dataGrid = new SimpleGrid({name:"currencyList"}, function (eventId, name, data) {
-            if("actionEdit" === eventId) {
+        self.dataGrid = new DataTable({name: "currencyList"});
+        self.dataGrid.onChange(function (eventId, name, data) {
+            if ("click" === eventId) {
                 self.showFormView();
                 self.form.setValue(data);
-            } else if("actionDelete" === eventId) {
-                let array = [];
-                array.push(data);
-                self.onDelete(array);
             }
         });
         self.showListView = function () {
@@ -187,10 +154,10 @@
             $.ajax({
                 type: "POST",
                 dataType: "json",
-                url: "../api/currency/search",
+                url: "api/currency/search",
                 data: JSON.stringify(req),
                 error: function (err) {
-                    new ShowMessageDialog(err.responseText);
+                    MessageDialog.show(err.responseText);
                 },
                 success: function (data) {
                     const model = self.model.name;
@@ -201,10 +168,7 @@
         };
         self.getSearchRequest = function (start) {
             self.paging.start = 0 > start ? 0 : start;
-            let req = {};
-            req.name = self.model.name;
-            req.start = start;
-            req.limit = self.paging.limit;
+            let req = {name: self.model.name, start: start, limit: self.paging.limit};
             req.searchText = $("#searchText").val().trim();
             return req;
         };
@@ -212,10 +176,10 @@
             $.ajax({
                 type: "POST",
                 dataType: "json",
-                url: "../api/currency/save",
+                url: "api/currency/save",
                 data: JSON.stringify(data),
                 error: function (err) {
-                    new ShowMessageDialog(err.responseText);
+                    MessageDialog.show(err.responseText);
                 },
                 success: function () {
                     self.showListView();
@@ -227,51 +191,58 @@
             $.ajax({
                 type: "POST",
                 dataType: "json",
-                url: "../api/currency/delete",
+                url: "api/currency/delete",
                 data: JSON.stringify(data),
                 error: function (err) {
-                    new ShowMessageDialog(err.responseText);
+                    MessageDialog.show(err.responseText);
                 },
                 success: function () {
                     self.search(self.getSearchRequest(self.paging.start));
                 }
             });
         };
-        self.form = new FormBinder(self.model, function (evt, type, name) {
-            if ("submit" === type && "currency" === name) {
-                let req = [];
-                req.push(self.form.getValue());
-                self.onSave(req);
-            }
-        });
-        self.paging.previous.click(function () {
+        self.form = new FormBinder(self.model);
+        self.paging.previous.on("click", function () {
             if (self.paging.isPrevious) {
                 let req = self.getSearchRequest(self.paging.start - self.paging.limit);
                 self.search(req);
             }
         });
-        self.paging.next.click(function () {
+        self.paging.next.on("click", function () {
             if (self.paging.isNext) {
                 let req = self.getSearchRequest(self.paging.start + self.paging.limit);
                 self.search(req);
             }
         });
-        $("#actionCreate").click(function () {
+        $("#actionCreate").on("click", function () {
             self.showFormView();
             self.form.setValue();
         });
-        $("#actionSearch").click(function (evt) {
+        $("#actionSearch").on("click", function (evt) {
             evt.preventDefault();
             self.showListView();
             self.search(self.getSearchRequest(0));
         });
-        $("#actionClose").click(function (evt) {
+        $("#actionClose").on("click", function (evt) {
             evt.preventDefault();
             self.showListView();
         });
-        $("#actionBack").click(function (evt) {
+        $("#actionBack").on("click", function (evt) {
             evt.preventDefault();
-            showView(SessionDB.get("previousView"));
+            PageManager.showPrevious();
+        });
+        $("#actionSave").on("click", function (evt) {
+            evt.preventDefault();
+            self.onSave([self.form.getValue()]);
+        });
+        $("#actionDelete").on("click", function (evt) {
+            evt.preventDefault();
+            let array = self.dataGrid.getSelected();
+            if (0 < array.length) {
+                UndoDialog.showLocale("actionDelete", function () {
+                    self.onDelete(array);
+                });
+            }
         });
         self.searchDelay = new CallFuture(1200);
         $("#searchText").keyup(function (evt) {
@@ -284,21 +255,16 @@
                 });
             }
         });
-        self.search(self.getSearchRequest(0));
-        self.form.setValue();
-        self.formDiv.hide();
+        self.start = function () {
+            $(".manage-max").css("max-width", "600px");
+            self.search(self.getSearchRequest(0));
+            self.form.setValue();
+            self.formDiv.hide();
+        };
     }
-
-    $(document).ready(function () {
-        let pm = new PageManager();
-        pm.loadMenu("../template/expense-menu.html", $("#nav"), function () {
-            performSignOut("../api/session/invalidate");
-            pm.loadLocale("../api/locale/default");
-            pm.setActiveMenuItem("currency");
-            new CurrencyView();
-        });
-    });
+    if(typeof PageManager === "undefined") {
+        window.location.href = "../index.html";
+    } else {
+        PageManager.init(new CurrencyView());
+    }
 </script>
-
-</body>
-</html>

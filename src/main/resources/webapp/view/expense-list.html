@@ -1,27 +1,4 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="Ramesh Annachi">
-    <title data-locale="apps_user"></title>
-    <link rel="icon" href="../favicon.ico">
-    <link href="../css/bootstrap.min.css" rel="stylesheet">
-    <link href="../css/fa-svg-with-js.css" rel="stylesheet">
-    <link href="../css/main.css" rel="stylesheet">
-    <script src="../js/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
-    <script src="../js/bootstrap.min.js"></script>
-    <script src="../js/fontawesome-all.min.js"></script>
-    <script src="../js/js.cookie.min.js"></script>
-    <script src="../js/simple-grid.js"></script>
-    <script src="../js/main.js"></script>
-</head>
-
-<body>
-<nav id="nav" class="navbar fixed-top navbar-expand-lg navbar-light bg-light"></nav>
-
-<main role="main" class="container">
+<div class="container">
     <div id="user-list">
         <div class="row">
             <div class="d-inline">
@@ -30,29 +7,32 @@
             <div class="form-inline ml-2">
                 <input id="searchText" placeholder="Search" class="form-control mr-sm-2" type="text"
                        aria-label="Search">
-                <button id="actionSearch" class="btn btn-outline-info my-2 my-sm-0" type="button">
-                    <i class="fas fa-search icon-blue"></i>
-                </button>
-                <button id="actionPrevious" class="btn btn-outline-info my-2 my-sm-0 ml-2" type="button">
-                    <i class="fas fa-chevron-left icon-blue"></i>
-                </button>
-                <button id="actionNext" class="btn btn-outline-info my-2 my-sm-0  ml-3" type="button">
-                    <i class="fas  fa-chevron-right icon-blue"></i>
-                </button>
-                <label id="pagingInfo" class="btn  ml-2">-</label>
-
+                <div class="btn-group" role="group">
+                    <button id="actionSearch" class="btn btn-outline-primary" type="button">
+                        <i class="fas fa-search icon-blue"></i>
+                    </button>
+                    <button id="actionPrevious" class="btn btn-outline-secondary" type="button">
+                        <i class="fas fa-chevron-left icon-blue"></i>
+                    </button>
+                    <button id="actionNext" class="btn btn-outline-secondary" type="button">
+                        <i class="fas  fa-chevron-right icon-blue"></i>
+                    </button>
+                </div>
+                <label id="pagingInfo" class="btn ml-2">-</label>
+                <div class="btn-group" role="group">
+                    <button id="actionDelete" data-locale="actionDelete" class="btn btn-outline-danger"></button>
+                </div>
             </div>
         </div>
-
         <div class="row mt-3">
-            <table class="table">
+            <table class="table table-bordered">
                 <thead data-id="expenseList">
                 <tr>
-                    <th data-id="expenseList.actionEdit" data-locale="actionEdit" width="40px"></th>
-                    <th data-id="expenseList.code" data-locale="expense.code"></th>
-                    <th data-id="expenseList.description" data-locale="expense.description"></th>
-                    <th data-id="expenseList.amount" data-locale="expense.amount"></th>
-                    <th data-id="expenseList.actionDelete" data-locale="actionDelete" width="40px"></th>
+                    <th data-type="selectable" width="50px"></th>
+                    <th data-type="link" data-id="expenseList.code" data-locale="expense.code" width="140px"></th>
+                    <th data-type="text" data-id="expenseList.description" data-locale="expense.description"></th>
+                    <th data-type="reference" data-columns="code" data-id="expenseList.currency" data-locale="expense.currency" width="100px"></th>
+                    <th data-type="double" data-id="expenseList.amount" data-locale="expense.amount" width="100px"></th>
                 </tr>
                 </thead>
                 <tbody data-id="expenseList">
@@ -60,31 +40,23 @@
             </table>
         </div>
     </div>
-</main>
-
+</div>
 <script>
-
     function ExpenseListView() {
         let self = this;
+        self.getId = function () {
+            return "expense-list";
+        };
         self.model = {name: "expense"};
-        self.paging = {};
-        self.paging.totalRecords = 0;
+        self.paging = {limit: 10, start: 0, totalRecords: 0, isPrevious: false, isNext: false, sortList: []};
         self.paging.previous = $("#actionPrevious");
         self.paging.info = $("#pagingInfo");
         self.paging.next = $("#actionNext");
-        self.paging.start = 0;
-        self.paging.limit = 10;
-        self.paging.isPrevious = false;
-        self.paging.isNext = false;
-        self.paging.sortList = [];
-        self.dataGrid = new SimpleGrid({name: "expenseList"}, function (eventId, name, data) {
-            if ("actionEdit" === eventId) {
-                SessionDB.set("expense", JSON.stringify(data));
-                window.location.href = "expense-form.html";
-            } else if ("actionDelete" === eventId) {
-                let array = [];
-                array.push(data);
-                self.onDelete(array);
+        self.dataGrid = new DataTable({name: "expenseList"});
+        self.dataGrid.onChange(function (eventId, name, data) {
+            if ("click" === eventId) {
+                SessionDB.set("expense", data);
+                PageManager.show("view/expense-form.html");
             }
         });
         self.setPaging = function (obj) {
@@ -108,10 +80,10 @@
             $.ajax({
                 type: "POST",
                 dataType: "json",
-                url: "../api/expense/search",
+                url: "api/expense/search",
                 data: JSON.stringify(req),
                 error: function (err) {
-                    new ShowMessageDialog(err.responseText);
+                    MessageDialog.show(err.responseText);
                 },
                 success: function (data) {
                     const model = self.model.name;
@@ -133,36 +105,44 @@
             $.ajax({
                 type: "POST",
                 dataType: "json",
-                url: "../api/expense/delete",
+                url: "api/expense/delete",
                 data: JSON.stringify(data),
                 error: function (err) {
-                    new ShowMessageDialog(err.responseText);
+                    MessageDialog.show(err.responseText);
                 },
                 success: function () {
                     self.search(self.getSearchRequest(self.paging.start));
                 }
             });
         };
-        self.paging.previous.click(function () {
+        self.paging.previous.on("click", function () {
             if (self.paging.isPrevious) {
                 let req = self.getSearchRequest(self.paging.start - self.paging.limit);
                 self.search(req);
             }
         });
-        self.paging.next.click(function () {
+        self.paging.next.on("click", function () {
             if (self.paging.isNext) {
                 let req = self.getSearchRequest(self.paging.start + self.paging.limit);
                 self.search(req);
             }
         });
-        $("#actionSearch").click(function (evt) {
+        $("#actionSearch").on("click", function (evt) {
             evt.preventDefault();
             self.search(self.getSearchRequest(0));
         });
-        $("#actionCreate").click(function (evt) {
+        $("#actionCreate").on("click", function (evt) {
             evt.preventDefault();
-            SessionDB.set("expense", "{}");
-            window.location.href = "expense-form.html";
+            SessionDB.set("expense", {expense_date:DataUtil.now()});
+            PageManager.show("view/expense-form.html");
+        });
+        $("#actionDelete").on("click", function () {
+            const array = self.dataGrid.getSelected();
+            if (array.length) {
+                UndoDialog.showLocale("actionDelete", function () {
+                    self.onDelete(array);
+                });
+            }
         });
         self.searchDelay = new CallFuture(1200);
         $("#searchText").keyup(function (evt) {
@@ -175,18 +155,13 @@
                 });
             }
         });
-        self.search(self.getSearchRequest(0));
+        self.start = function () {
+            self.search(self.getSearchRequest(0));
+        };
     }
-
-    $(document).ready(function () {
-        let pm = new PageManager();
-        pm.loadMenu("../template/expense-menu.html", $("#nav"), function () {
-            performSignOut("../api/session/invalidate");
-            pm.loadLocale("../api/locale/default");
-            pm.setActiveMenuItem("expense");
-            new ExpenseListView();
-        });
-    });
+    if(typeof PageManager === "undefined") {
+        window.location.href = "../index.html";
+    } else {
+        PageManager.init(new ExpenseListView());
+    }
 </script>
-</body>
-</html>

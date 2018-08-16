@@ -1,3 +1,3 @@
 sample-dcapture-db.iws
 /target
-/webapp/.idea
+/src/main/resources/webapp/.idea

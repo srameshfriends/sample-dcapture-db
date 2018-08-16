@@ -44,6 +44,12 @@
         ]
       },
       {
+        "name": "save",
+        "columns": [
+          "name"
+        ]
+      },
+      {
         "name": "search",
         "columns": [
           "email",

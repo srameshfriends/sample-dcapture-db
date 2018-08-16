@@ -2,6 +2,7 @@ package sample.dcapture.db.service;
 
 import dcapture.db.core.*;
 import dcapture.db.postgres.PgQuery;
+import dcapture.io.BaseSettings;
 import dcapture.io.JsonRequest;
 import dcapture.io.JsonResponse;
 import dcapture.io.Localization;
@@ -16,7 +17,6 @@ import javax.servlet.http.HttpSession;
 import javax.ws.rs.Path;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -25,118 +25,127 @@ public class SessionService extends SqlMapper {
     private static final Logger logger = LogManager.getLogger(SessionService.class);
     private SqlDatabase database;
     private Localization locale;
+    private BaseSettings settings;
 
     @Inject
-    public SessionService(Localization locale, SqlDatabase database) {
+    public SessionService(Localization locale, SqlDatabase database, BaseSettings settings) {
         this.database = database;
         this.locale = locale;
+        this.settings = settings;
     }
 
     @Path("/validate")
-    private void validate(JsonRequest request, JsonResponse response) {
+    public JsonObject validate(JsonRequest request) {
         if (request.getSession(false) == null) {
-            response.send(getResponse("", "", "", "", false));
-        } else {
-            DataSet appsUser = (DataSet) request.getSession(false).getAttribute("apps_user");
-            String email = appsUser.getString("email", "");
-            String name = appsUser.getString("name", "");
-            String id = request.getSession(false).getId();
-            response.send(getResponse(id, name, email, "", true));
+            return toJsonObject("", "", "", "", false);
         }
+        DataSet appsUser = (DataSet) request.getSession(false).getAttribute("apps_user");
+        String email = appsUser.getString("email", "");
+        String name = appsUser.getString("name", "");
+        String id = request.getSession(false).getId();
+        return toJsonObject(id, name, email, "", true);
     }
 
-    @Path("/invalidate")
-    private void invalidate(JsonRequest request, JsonResponse response) {
+    @Path("/end")
+    public JsonObject end(JsonRequest request) {
         HttpSession session = request.getSession(false);
         if (session != null) {
             session.invalidate();
         }
-        response.accepted("Success");
+        return toJsonObject("", "", "", "", false);
     }
 
     @Path("/reset")
-    private JsonObject validate(JsonObject request) {
+    public JsonObject validate(JsonObject request) {
         JsonObjectBuilder builder = Json.createObjectBuilder();
         builder.add("status", "success");
-        builder.add("title", locale.get("resetPasswordMessage"));
+        builder.add("title", locale.get("mailToResetPassword"));
         return builder.build();
     }
 
-    @Path("/authorised")
-    private void email(JsonRequest request, JsonResponse response) throws SQLException {
+    @Path("/authorise1")
+    public void authorise1(JsonRequest request, JsonResponse response) throws Exception {
         String email = request.getString("email");
-        String code = request.getString("code");
-        String pass = request.getString("pass");
-        if (isValid(email)) {
-            SqlTable sessionBatch = database.getTable("session_batch");
-            SqlQuery query = querySelectAll(database, sessionBatch);
-            query.add(" WHERE email = ?").setParameter(email).limit(1);
-            DataSet appsUser = database.getReader().first("session_batch", query);
-            SqlTransaction transaction = database.beginTransaction();
-            code = UUID.randomUUID().toString();
-            DataModel model = new DataModel();
-            if (appsUser == null) {
-                model.setValue("email", email);
-                model.setValue("code", code);
-                model.setValue("created_on", LocalDateTime.now());
-                model.setValue("client", getClientInfo(request));
-                transaction.insert("session_batch", "edit", model.as());
-            } else {
-                model = new DataModel(appsUser);
-                model.setValue("email", email);
-                model.setValue("code", code);
-                model.setValue("created_on", LocalDateTime.now());
-                model.setValue("client", getClientInfo(request));
-                transaction.update("session_batch", "edit", model);
-            }
-            transaction.commit();
-            response.send(getResponse("", "", email, code, false));
-        } else if (isValid(code) && isValid(pass)) {
-            SqlQuery query = new PgQuery().add("SELECT ").add(" email FROM ");
-            if (database.getSchema() != null) {
-                query.add(database.getSchema()).add(".");
-            }
-            query.add("session_batch").add(" WHERE ").add(" code = ?").setParameter(code);
-            email = (String) database.getReader().getValue(query);
-            if (email != null) {
-                query = querySelectAll(database, "apps_user").add(" WHERE ")
-                        .add(" email = ?").setParameter(email).limit(1);
-                DataSet appsUser = database.getReader().first("apps_user", query);
-                if (appsUser == null) {
-                    response.error(locale.get("userOrPasswordNotValid"));
-                } else {
-                    query = new PgQuery().add("DELETE FROM ");
-                    if (database.getSchema() != null) {
-                        query.add(database.getSchema()).add(".");
-                    }
-                    query.add("session_batch WHERE email = ?").setParameter(email);
-                    SqlTransaction transaction = database.beginTransaction();
-                    transaction.execute(query);
-                    transaction.commit();
-                    HttpSession session = request.getSession(true);
-                    session.setAttribute("apps_user", appsUser);
-                    String userName = appsUser.getString("name", "");
-                    response.send(getResponse(session.getId(), userName, email, "", true));
-                }
-            }
-        } else {
-            response.error(locale.get("userOrPasswordNotValid"));
+        if (notValid(email)) {
+            response.error(locale.get("email.invalid"));
+            return;
         }
+        PgQuery query = new PgQuery("SELECT id FROM ");
+        query.add(database.getSchema()).add(".apps_user").add(" WHERE email = ?").setParameter(email);
+        Long id = (Long) database.getReader().getValue(query);
+        if (id == null || 1 > id) {
+            response.error(locale.get("email.invalid"));
+            return;
+        }
+        SqlTransaction transaction = database.beginTransaction();
+        transaction.execute(new PgQuery("DELETE FROM session_batch WHERE email = ?").setParameter(email));
+        transaction.commit();
+        String code = UUID.randomUUID().toString();
+        DataModel model = new DataModel();
+        model.setValue("email", email);
+        model.setValue("code", code);
+        model.setValue("created_on", LocalDateTime.now());
+        model.setValue("client", getClientInfo(request));
+        transaction = database.beginTransaction();
+        transaction.insert("session_batch", "edit", model.as());
+        transaction.commit();
+        response.sendObject(toJsonObject("", "", email, code, false));
     }
 
-    private JsonObject getResponse(String id, String name, String email, String code, boolean authenticated) {
+    @Path("/authorise2")
+    public void authorise2(JsonRequest request, JsonResponse response) throws Exception {
+        String code = request.getString("code", "");
+        String pass = request.getString("pass", "");
+        if (notValid(code)) {
+            response.sendObject(toJsonObject("", "", "", "", false));
+            return;
+        }
+        if (notValid(pass)) {
+            response.error(locale.get("userOrPasswordNotValid"));
+            return;
+        }
+        SqlQuery query = new PgQuery("SELECT email FROM ");
+        query.add(database.getSchema()).add(".session_batch").add(" WHERE ").add(" code = ?").setParameter(code);
+        String email = (String) database.getReader().getValue(query);
+        if (email == null) {
+            response.sendObject(toJsonObject("", "", "", "", false));
+            return;
+        }
+        query = querySelectAll(database, "apps_user").add(" WHERE ")
+                .add(" email = ?").setParameter(email).limit(1);
+        DataSet appsUser = database.getReader().first("apps_user", query);
+        if (appsUser == null || !pass.equals(appsUser.getString("password", ""))) {
+            response.error(locale.get("userOrPasswordNotValid"));
+            return;
+        }
+        query = new PgQuery().add("DELETE FROM ");
+        if (database.getSchema() != null) {
+            query.add(database.getSchema()).add(".");
+        }
+        query.add("session_batch WHERE email = ?").setParameter(email);
+        SqlTransaction transaction = database.beginTransaction();
+        transaction.execute(query);
+        transaction.commit();
+        HttpSession session = request.getSession(true);
+        session.setAttribute("apps_user", appsUser);
+        String userName = appsUser.getString("name", "");
+        response.sendObject(toJsonObject(session.getId(), userName, email, "", true));
+    }
+
+    private JsonObject toJsonObject(String sessionId, String name, String email, String code, boolean authenticated) {
         JsonObjectBuilder builder = Json.createObjectBuilder();
         builder.add("email", email);
-        builder.add("name", name);
+        builder.add("userName", name);
         builder.add("code", code);
         builder.add("authenticated", authenticated);
-        builder.add("id", id);
-        builder.add("signOut", locale.get("signOut"));
+        builder.add("sessionId", sessionId);
+        builder.add("id", settings.getId());
+        builder.add("name", settings.getName());
         return builder.build();
     }
 
-    private boolean isValid(String code) {
-        return code != null && !code.trim().isEmpty();
+    private boolean notValid(String code) {
+        return code == null || code.trim().isEmpty();
     }
 
     private String getClientInfo(JsonRequest request) {

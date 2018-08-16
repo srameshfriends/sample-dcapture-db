@@ -1,160 +1,117 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="Ramesh Annachi">
-    <title data-locale="expense"></title>
-    <link rel="icon" href="../favicon.ico">
-    <link href="../css/bootstrap.min.css" rel="stylesheet">
-    <link href="../css/fa-svg-with-js.css" rel="stylesheet">
-    <link href="../css/main.css" rel="stylesheet">
-    <script src="../js/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
-    <script src="../js/bootstrap.min.js"></script>
-    <script src="../js/fontawesome-all.min.js"></script>
-    <script src="../js/js.cookie.min.js"></script>
-    <script src="../js/form-fields.js"></script>
-    <script src="../js/main.js"></script>
-</head>
-
-<body>
-
-<nav id="nav" class="navbar fixed-top navbar-expand-lg navbar-light bg-light"></nav>
-
-<main role="main" class="container">
-    <div id="form-div" class="row">
-        <div class="mx-auto">
-            <div class="card">
-                <div class="card-header">
+<div class="container manage-max">
+    <div class="card">
+        <div class="card-header">
                     <span id="actionBack">
                         <i class="fas fa-arrow-left icon-blue"></i>
                     </span>
-                    <span data-locale="expense" class="ml-3"></span>
-                    <span class="float-right" id="actionClose">
+            <span data-locale="expense" class="ml-3"></span>
+            <span class="float-right" id="actionClose">
                         <i class="fas fa-times icon-blue"></i>
-                    </span>
+            </span>
+        </div>
+        <div class="card-body">
+            <form data-id="expense" data-type="form" class="form" method="post" role="form">
+                <input type="hidden" data-id="expense.id" data-type="hidden">
+                <input type="hidden" data-id="expense.rev" data-type="hidden">
+                <div class="form-group">
+                    <label data-locale="expense.expense_date" class="form-control-label"></label>
+                    <input type="date" data-id="expense.expense_date" data-type="date" class="form-control">
                 </div>
-                <div class="card-body">
-                    <form data-id="expense" data-type="form" class="form" method="post" role="form">
-                        <input type="hidden" data-id="expense.id" data-type="hidden">
-                        <input type="hidden" data-id="expense.rev" data-type="hidden">
-                        <div class="form-group row">
-                            <label data-locale="expense.expense_date"
-                                   class="col-lg-4 col-form-label form-control-label"></label>
-                            <div class="input-group col-lg-8">
-                                <input type="date" data-id="expense.expense_date" data-type="date" class="form-control">
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label data-locale="expense.description"
-                                   class="input-group col-lg-4 col-form-label form-control-label"></label>
-                            <div class="col-lg-8">
-                                <textarea data-id="expense.description" data-type="text" cols="4" class="form-control">
+                <div class="form-group">
+                    <label data-locale="expense.description" class="form-control-label"></label>
+                    <textarea data-id="expense.description" data-type="text" cols="4" class="form-control">
                                 </textarea>
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label data-locale="expense.expense_category"
-                                   class="col-lg-4 col-form-label form-control-label"></label>
-                            <div class="input-group col-lg-8">
-                                <input class="form-control " data-id="expense.expense_category" data-type="reference">
-                                <div class="input-group-append">
-                                    <button data-lookup="expense.expense_category"
-                                            class="input-group bg-transparent border" type="button">
-                                        <i class="fas fa-angle-down" style="width: 24px"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label data-locale="expense.currency"
-                                   class="col-lg-4 col-form-label form-control-label"></label>
-                            <div class="input-group col-lg-8">
-                                <input class="form-control " data-id="expense.currency" data-type="reference">
-                                <div class="input-group-append">
-                                    <button data-lookup="expense.currency"
-                                            class="input-group bg-transparent border" type="button">
-                                        <i class="fas fa-angle-down" style="width: 24px"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label data-locale="expense.amount"
-                                   class="input-group col-lg-4 col-form-label form-control-label"></label>
-                            <div class="col-lg-8">
-                                <input data-id="expense.amount" data-type="double" class="form-control">
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label class="col-lg-4 col-form-label form-control-label"></label>
-                            <div class="col-lg-8">
-                                <input type="submit" class="btn btn-primary" value="Save">
-                            </div>
-                        </div>
-                    </form>
                 </div>
-            </div>
+                <div class="form-group">
+                    <button id="expenseCategory" data-locale="expense.expense_category" class="btn btn-link pl-0"></button>
+                    <div class="input-group">
+                        <input class="form-control" data-id="expense.expense_category" data-type="reference">
+                        <div class="input-group-append">
+                            <button data-lookup="expense.expense_category"
+                                    class="input-group bg-transparent border" type="button">
+                                <i class="fas fa-angle-down" style="width: 24px"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <button id="currency" data-locale="expense.currency" class="btn btn-link pl-0"></button>
+                    <div class="input-group">
+                        <input class="form-control " data-id="expense.currency" data-type="reference">
+                        <div class="input-group-append">
+                            <button data-lookup="expense.currency"
+                                    class="input-group bg-transparent border" type="button">
+                                <i class="fas fa-angle-down" style="width: 24px"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label data-locale="expense.amount" class="form-control-label"></label>
+                    <input data-id="expense.amount" data-type="double" class="form-control">
+                </div>
+                <div class="form-group">
+                    <button id="actionSave" data-locale="actionSave" class="btn btn-outline-primary"></button>
+                </div>
+            </form>
         </div>
     </div>
-
-</main>
-
+</div>
 <script>
-
     function ExpenseFormView() {
         let self = this;
+        self.getId = function () {
+            return "expense-form";
+        };
         self.model = {name: "expense"};
-        self.model.expense_category = {};
-        self.model.expense_category.name = "expense_category";
+        self.model.expense_category = {name: "expense_category", url: "../api/expense_category/search"};
         self.model.expense_category.columns = [{name: "code", title: "Code"}, {name: "name", title: "Name"}];
-        self.model.expense_category.url = "../api/expense_category/search";
-        self.model.currency = {};
-        self.model.currency.name = "currency";
+        self.model.currency = {name: "currency", url: "../api/currency/search"};
         self.model.currency.columns = [{name: "code", title: "Code"}, {name: "name", title: "Name"}];
-        self.model.currency.url = "../api/currency/search";
+        self.form = new FormBinder(self.model);
+        $("#actionBack").on("click", function (evt) {
+            evt.preventDefault();
+            PageManager.showPrevious();
+        });
+        $("#actionClose").on("click", function (evt) {
+            evt.preventDefault();
+            PageManager.show("view/expense-list.html");
+        });
+        $("#expenseCategory").on("click", function (evt) {
+            evt.preventDefault();
+            PageManager.show("view/expense-category.html");
+        });
+        $("#currency").on("click", function (evt) {
+            evt.preventDefault();
+            PageManager.show("view/currency.html");
+        });
         self.onSave = function (data) {
             $.ajax({
                 type: "POST",
                 dataType: "json",
-                url: "../api/expense/save",
-                data: JSON.stringify([data]),
+                url: "api/expense/save",
+                data: JSON.stringify(data),
                 error: function (err) {
-                    new ShowMessageDialog(err.responseText);
+                    MessageDialog.show(err.responseText);
                 },
                 success: function () {
-                    window.location.href = "expense-list.html";
+                    PageManager.show("view/expense-list.html");
                 }
             });
         };
-        self.form = new FormBinder(self.model, function (evt, type, name) {
-            if("submit" === type && "expense" === name) {
-                self.onSave(self.form.getValue());
-            }
-        });
-        $("#actionBack").click(function (evt) {
+        $("#actionSave").on("click", function (evt) {
             evt.preventDefault();
-            showView(SessionDB.get("previousView"));
+            self.onSave([self.form.getValue()]);
         });
-        $("#actionClose").click(function (evt) {
-            evt.preventDefault();
-            showView("expense");
-        });
-        let value = SessionDB.getValue("expense");
-        self.form.setValue(value);
+        self.start = function () {
+            self.form.setValue(SessionDB.getJson("expense"));
+            self.form.focus("description");
+            $(".manage-max").css("max-width", "600px");
+        };
     }
-
-    $(document).ready(function () {
-        let pm = new PageManager();
-        pm.loadMenu("../template/expense-menu.html", $("#nav"), function () {
-            performSignOut("../api/session/invalidate");
-            pm.loadLocale("../api/locale/default");
-            pm.setActiveMenuItem("expense");
-            new ExpenseFormView();
-        });
-    });
+    if(typeof PageManager === "undefined") {
+        window.location.href = "../index.html";
+    } else {
+        PageManager.init(new ExpenseFormView());
+    }
 </script>
-
-</body>
-</html>

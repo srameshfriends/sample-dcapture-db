@@ -1,0 +1,77 @@
+<div class="container pt-3">
+    <div class="row justify-content-sm-center">
+        <div class="col-lg-6 col-lg-4">
+            <div class="card text-center">
+                <div class="card-header">
+                    <label data-locale="createAccount" class="float-left text-bold text-secondary"></label>
+                </div>
+                <div class="card-body">
+                    <img src="img/logo.png">
+                    <div class="form-group  text-left">
+                        <div class="form-group">
+                            <label data-locale="name"></label>
+                            <input id="alkdsfjhyykhgd" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label data-locale="email"></label>
+                            <input id="jhufeohjdhjue" type="email" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <button id="actionSignin" data-locale="signIn" class="btn btn-link"></button>
+                            <button id="actionSignup" data-locale="next" class="float-right btn btn-primary"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function SignUpView1() {
+        let self = this;
+        self.getId = function () {
+            return "signup1";
+        };
+        self.onNext = function () {
+            const itm1 = $("#alkdsfjhyykhgd").val().trim(), itm2 = $("#jhufeohjdhjue").val().trim();
+            let req = {name: itm1, email: itm2};
+            $.ajax({
+                type: "POST",
+                dataType: "json",
+                url: "api/user/create1",
+                data: JSON.stringify(req),
+                error: function (err) {
+                    MessageDialog.show(err.responseText);
+                },
+                success: function (res) {
+                    SessionDB.set("new_user_account", res);
+                    PageManager.show("view/signup2.html");
+                }
+            });
+        };
+        $("#alkdsfjhyykhgd").keyup(function (evt) {
+            evt.preventDefault();
+            if (evt.keyCode === 13) {
+                $("#jhufeohjdhjue").focus();
+            }
+        });
+        $("#jhufeohjdhjue").keyup(function (evt) {
+            evt.preventDefault();
+            if (evt.keyCode === 13) {
+                self.onNext();
+            }
+        });
+        $("#actionSignup").on("click", function (evt) {
+            evt.preventDefault();
+            self.onNext();
+        });
+        $("#actionSignin").on("click", function () {
+            PageManager.show("view/signin1.html");
+        });
+    }
+    if(typeof PageManager === "undefined") {
+        window.location.href = "../index.html";
+    } else {
+        PageManager.init(new SignUpView1());
+    }
+</script>

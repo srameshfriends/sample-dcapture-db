@@ -22,3 +22,14 @@ IM01
 - >Java 10 migration are updated.
 - >dcapture-db and dcapture-io changes are updated
 - >webapp folder moved to class path location
+
+IM02
+
+- >dcapture-io changes are updated
+- >User service fix issues
+- >single page (Modulation) environment are created.
+- >bootstrap.bundle.js dependency is used, instead of bootstrap.js 
+- >bootstrap unused dependencies are removed
+- >LookupField visual effect improved
+- >User Register two page concept are updated
+- >simple-grid renamed as data-table, main.js renamed to core.js 

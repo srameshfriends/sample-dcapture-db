@@ -1,47 +1,28 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="Ramesh Annachi">
-    <title data-locale="currency"></title>
-    <link rel="icon" href="../favicon.ico">
-    <link href="../css/bootstrap.min.css" rel="stylesheet">
-    <link href="../css/fa-svg-with-js.css" rel="stylesheet">
-    <link href="../css/main.css" rel="stylesheet">
-    <script src="../js/jquery-3.3.1.min.js"></script>
-    <script src="../js/bootstrap.min.js"></script>
-    <script src="../js/fontawesome-all.min.js"></script>
-    <script src="../js/form-fields.js"></script>
-    <script src="../js/main.js"></script>
-</head>
-<body>
-<h2 class="text-center" data-locale="company.title"></h2>
-<div class="container pt-3">
+<div class="container">
     <div class="row justify-content-sm-center">
         <div class="col-lg-6 col-lg-4">
             <div class="card border-0 text-center">
-                <div data-locale="signInAppsUser" class="card-header border-0 bg-transparent"></div>
+                <div class="card-header border-0 bg-transparent">
+                    <h3 class="text-primary" id="apps-name"></h3>
+                </div>
                 <div class="card-body border-0">
-                    <img src="../img/logo.png">
+                    <img src="img/logo.png">
                     <div class="form-group  text-left">
                         <label data-locale="email"></label>
                         <div class="input-group mb-2">
-                            <input type="email" class="form-control" id="adsfjhdsfjahdfjj">
+                            <input type="email" autofocus class="form-control" id="adsfjhdsfjahdfjj">
                             <div class="input-group-append">
                                 <button id="actionNext" data-locale="actionNext"
                                         class="btn btn-outline-info"></button>
                             </div>
                         </div>
                         <div class="form-group d-inline">
+                            <button id="actionCreateAccount" data-locale="createAccount"
+                                    class="float-left btn btn-link"></button>
+                        </div>
+                        <div class="form-group d-inline">
                             <button id="actionResetPassword" data-locale="actionResetPassword"
                                     class="btn btn-link float-right"></button>
-                        </div>
-                    </div>
-                    <div class="container">
-                        <div class="row">
-                            <a data-locale="createAccount" href="signup.html" class="float-right"></a>
                         </div>
                     </div>
                 </div>
@@ -50,41 +31,26 @@
     </div>
 </div>
 <script>
-
-    function UserBatchView() {
+    function UserBatchView1() {
         let self = this;
+        self.getId = function () {
+            return "signin1";
+        };
         self.isValidEmail = function (eml) {
             return /(.+)@(.+){2,}\.(.+){2,}/.test(eml);
-        };
-        self.isSessionValid = function () {
-            $.ajax({
-                type: "POST",
-                dataType: "json",
-                data: "{}",
-                url: "../api/session/validate",
-                error: function (err) {
-                    new ShowMessageDialog(err.responseText);
-                },
-                success: function (args) {
-                    if (args["authenticated"] === true) {
-                        SessionDB.set("aduetthaecnittinceahtteuda", JSON.stringify(args));
-                        window.location.href = "expense-list.html";
-                    }
-                }
-            });
         };
         self.onSubmit = function (data) {
             $.ajax({
                 type: "POST",
                 dataType: "json",
-                url: "../api/session/authorised",
+                url: "api/session/authorise1",
                 data: JSON.stringify(data),
                 error: function (err) {
-                    new ShowMessageDialog(err.responseText);
+                    MessageDialog.show(err.responseText);
                 },
                 success: function (args) {
                     SessionDB.set("aduetthaecnittinceahtteuda", JSON.stringify(args));
-                    window.location.href = "signin2.html";
+                    PageManager.show("view/signin2.html");
                 }
             });
         };
@@ -92,13 +58,13 @@
             $.ajax({
                 type: "POST",
                 dataType: "json",
-                url: "../api/session/reset",
+                url: "api/session/reset",
                 data: JSON.stringify(data),
                 error: function (err) {
-                    new ShowMessageDialog(err.responseText);
+                    MessageDialog.show(err.responseText);
                 },
                 success: function (msg) {
-                    new ShowMessageDialog(msg.title);
+                    MessageDialog.show(msg.title);
                 }
             });
         };
@@ -108,7 +74,7 @@
             if (self.isValidEmail(item)) {
                 self.onSubmit({email: item});
             } else {
-                new ShowMessageDialog("Email not valid");
+                MessageDialog.locale("email.invalid");
                 node.focus();
                 node.select();
             }
@@ -119,30 +85,31 @@
                 self.onEvent();
             }
         });
-        $("#actionNext").click(function (evt) {
+        $("#actionNext").on("click", function (evt) {
             evt.preventDefault();
             self.onEvent();
         });
-        $("#actionResetPassword").click(function (evt) {
-            evt.preventDefault();
+        $("#actionResetPassword").on("click", function () {
             let item = node.val().trim();
             if (self.isValidEmail(item)) {
                 self.onReset({email: item});
             } else {
-                new ShowMessageDialog("Email not valid");
+                MessageDialog.locale("email.invalid");
                 node.focus();
                 node.select();
             }
         });
-        self.isSessionValid();
+        $("#actionCreateAccount").on("click", function () {
+             PageManager.show("view/signup1.html");
+        });
+        self.start = function() {
+            $("#apps-name").text(SessionDB.getValue("applicationName"));
+            node.focus();
+        };
     }
-
-    $(document).ready(function () {
-        let pm = new PageManager();
-        pm.loadLocale("../api/locale/default");
-        new UserBatchView();
-    });
+    if(typeof PageManager === "undefined") {
+        window.location.href = "../index.html";
+    } else {
+        PageManager.init(new UserBatchView1());
+    }
 </script>
-
-</body>
-</html>

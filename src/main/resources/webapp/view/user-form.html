@@ -1,120 +1,74 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="Ramesh Annachi">
-    <title data-locale="createAccount"></title>
-    <link rel="icon" href="../favicon.ico">
-    <link href="../css/bootstrap.min.css" rel="stylesheet">
-    <link href="../css/fa-svg-with-js.css" rel="stylesheet">
-    <link href="../css/main.css" rel="stylesheet">
-    <script src="../js/jquery-3.3.1.min.js"></script>
-    <script src="../js/bootstrap.min.js"></script>
-    <script src="../js/fontawesome-all.min.js"></script>
-    <script src="../js/js.cookie.min.js"></script>
-    <script src="../js/form-fields.js"></script>
-    <script src="../js/main.js"></script>
-</head>
-<body>
-<nav id="nav" class="navbar fixed-top navbar-expand-lg navbar-light bg-light"></nav>
-<main role="main" class="container">
+<div class="container">
     <div id="user-form-div" class="row">
-        <div class="mx-auto">
+        <div class="mx-auto manage-max">
             <div class="card">
                 <div class="card-header">
                     <span id="actionBack">
                         <i class="fas fa-arrow-left icon-blue"></i>
                     </span>
-                    <span data-locale="createAccount" class="ml-3"></span>
+                    <span data-locale="userInformation" class="ml-3"></span>
                     <span class="float-right" id="actionClose">
                         <i class="fas fa-times icon-blue"></i>
                     </span>
                 </div>
                 <div class="card-body">
-                    <form data-id="apps_user" data-type="form" class="form" method="post">
+                    <form data-id="apps_user" data-type="form" class="form" role="form" method="post">
                         <input type="hidden" data-id="apps_user.id" data-type="hidden">
                         <input type="hidden" data-id="apps_user.rev" data-type="hidden">
-                        <div class="form-group row">
-                            <label data-locale="apps_user.name"
-                                   class="col-lg-4 col-form-label form-control-label"></label>
-                            <div class="col-lg-8">
-                                <input data-id="apps_user.name" data-type="text" class="form-control">
-                            </div>
+                        <div class="form-group">
+                            <label data-locale="apps_user.name" class="form-control-label"></label>
+                            <input data-id="apps_user.name" data-type="text" class="form-control">
                         </div>
-                        <div class="form-group row">
-                            <label data-locale="apps_user.email"
-                                   class="col-lg-4 col-form-label form-control-label"></label>
-                            <div class="col-lg-8">
-                                <input data-id="apps_user.email" data-type="text" type="email" class="form-control">
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label data-locale="apps_user.password"
-                                   class="col-lg-4 col-form-label form-control-label"></label>
-                            <div class="col-lg-8">
-                                <input data-id="apps_user.password" data-type="text" type="password"
-                                       class="form-control">
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label class="col-lg-4 col-form-label form-control-label"></label>
-                            <div class="col-lg-8">
-                                <input type="submit" class="btn btn-primary" data-locale="actionCreate">
-                            </div>
+                        <div class="form-group">
+                            <button id="actionSave" data-locale="actionSave" class="btn btn-outline-primary"></button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
-</main>
+</div>
 <script>
     function UserFormView() {
         let self = this;
+        self.getId = function () {
+            return "user-form";
+        };
         self.model = {name: "apps_user"};
         self.onSave = function (data) {
             $.ajax({
                 type: "POST",
                 dataType: "json",
-                url: "../api/user/save",
+                url: "api/user/save",
                 data: JSON.stringify(data),
                 error: function (err) {
-                    new ShowMessageDialog(err.responseText);
+                    MessageDialog.show(err.responseText);
                 },
                 success: function () {
-                    window.location.href = "user-list.html";
+                    PageManager.show("view/user-list.html");
                 }
             });
         };
-        self.form = new FormBinder(self.model, function (evt, type, name) {
-            if ("submit" === type && "apps_user" === name) {
-                let req = [];
-                req.push(self.form.getValue());
-                self.onSave(req);
-            }
-        });
-        $("#actionClose").click(function (evt) {
+        self.form = new FormBinder(self.model);
+        $("#actionSave").on("click", function (evt) {
             evt.preventDefault();
-            window.location.href = "user-list.html";
+            self.onSave([self.form.getValue()]);
         });
-        $("#actionBack").click(function (evt) {
+        $("#actionClose").on("click", function (evt) {
             evt.preventDefault();
-            showView(SessionDB.get("previousView"));
+            PageManager.show("view/user-list.html");
         });
-        let value = SessionDB.getValue("apps_user");
-        self.form.setValue(value);
+        $("#actionBack").on("click", function (evt) {
+            evt.preventDefault();
+            PageManager.showPrevious();
+        });
+        self.start = function () {
+            self.form.setValue(SessionDB.getJson("apps_user"));
+        };
     }
-
-    $(document).ready(function () {
-        let pm = new PageManager();
-        pm.loadMenu("../template/expense-menu.html", $("#nav"), function () {
-            pm.loadLocale("../api/locale/default");
-            pm.setActiveMenuItem("");
-        });
-        new UserFormView();
-    });
+    if(typeof PageManager === "undefined") {
+        window.location.href = "../index.html";
+    } else {
+        PageManager.init(new UserFormView());
+    }
 </script>
-</body>
-</html>

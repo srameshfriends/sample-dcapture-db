@@ -1,0 +1,49 @@
+{
+  "currency": [
+    {
+      "id": 12,
+      "name": "Singapore",
+      "code": "S$"
+    },
+    {
+      "id": 14,
+      "name": "India",
+      "code": "Rs"
+    },
+    {
+      "id": 16,
+      "name": "USA",
+      "code": "U$"
+    },
+    {
+      "id": 18,
+      "name": "Malaysia",
+      "code": "MR"
+    },
+    {
+      "id": 20,
+      "name": "Japan",
+      "code": "YN"
+    },
+    {
+      "id": 22,
+      "name": "Euro",
+      "code": "€"
+    },
+    {
+      "id": 24,
+      "name": "Australia",
+      "code": "A$"
+    },
+    {
+      "id": 26,
+      "name": "Bermuda",
+      "code": "B$"
+    },
+    {
+      "id": 28,
+      "name": "Iceland",
+      "code": "kr"
+    }
+  ]
+}

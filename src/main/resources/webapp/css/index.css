@@ -40,3 +40,20 @@ body {
 .text-bold {
     font-weight: bold;
 }
+
+.row-selected {
+    background-color: #AAFEFF;
+}
+
+.cell-link {
+    color: dodgerblue;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+#messageDialog, #undoDialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+}

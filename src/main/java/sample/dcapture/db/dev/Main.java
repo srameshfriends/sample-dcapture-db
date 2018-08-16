@@ -43,6 +43,7 @@ public class Main extends Registry implements Runnable {
             if (logger.isDebugEnabled()) {
                 ex.printStackTrace();
             }
+            System.exit(1);
         }
     }
 
