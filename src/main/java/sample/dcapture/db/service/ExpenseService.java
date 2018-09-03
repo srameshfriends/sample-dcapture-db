@@ -1,10 +1,8 @@
 package sample.dcapture.db.service;
 
 import dcapture.db.core.*;
+import dcapture.io.FormModel;
 import dcapture.io.LocaleException;
-import dcapture.io.Paging;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import javax.inject.Inject;
 import javax.json.Json;
@@ -18,8 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Path("/expense")
-public class ExpenseService extends SqlMapper {
-    private static final Logger logger = LogManager.getLogger(ExpenseService.class);
+public class ExpenseService {
     private SqlDatabase database;
 
     @Inject
@@ -28,53 +25,59 @@ public class ExpenseService extends SqlMapper {
     }
 
     @Path("/search")
-    public JsonObject search(JsonObject req) {
-        JsonObjectBuilder result = Json.createObjectBuilder();
-        try {
-            Paging paging = parsePaging(req);
-            SqlTable sqlTable = database.getTable("expense");
-            SqlQuery[] queries = querySearchCount(database, sqlTable, paging);
-            SqlReader reader = database.getReader();
-            List<DataSet> dataList = reader.find(sqlTable.getName(), queries[0]);
-            Number count = (Number) reader.getValue(queries[1]);
-            JsonArray dataArray = toJsonArray(database, sqlTable, dataList);
-            result.add("expense", dataArray);
-            setPaging(result, paging, count.intValue(), dataList.size());
-        } catch (SQLException ex) {
-            if (logger.isDebugEnabled()) {
-                ex.printStackTrace();
-            }
+    public JsonObject search(JsonObject req) throws SQLException {
+        FormModel model = new FormModel(req);
+        DataSetQuery dataQuery = database.instance(DataSetQuery.class);
+        dataQuery.selectColumnGroup("expense", "search");
+        String searchText = model.getStringSafe("searchText");
+        if (!searchText.isEmpty()) {
+            dataQuery.add(" WHERE ").searchColumnGroup(searchText, "searchText");
         }
+        dataQuery.add(" ORDER BY expense_date DESC, code DESC");
+        long start = model.getLongSafe("start");
+        int limit = model.getIntSafe("limit");
+        limit = 0 < limit ? limit : 20;
+        dataQuery.limit(limit, start);
+        List<DataSet> dataList = dataQuery.loadAll();
+        //
+        SqlQuery totalQuery = database.instance(SqlQuery.class);
+        totalQuery.add("SELECT COUNT(*) ").add(" FROM ").addTable("expense");
+        if (!searchText.isEmpty()) {
+            dataQuery.add(" WHERE ").searchColumnGroup(searchText, "search");
+        }
+        Number totalRecords = (Number) totalQuery.getValue();
+        JsonObjectBuilder result = Json.createObjectBuilder();
+        result.add("expense", SqlMapper.toJsonArray(database, "expense", dataList));
+        result.add("start", start);
+        result.add("limit", limit);
+        result.add("totalRecords", totalRecords.intValue());
+        result.add("length", dataList.size());
         return result.build();
     }
 
     @Path("/save")
     public JsonArray save(JsonArray req) throws SQLException {
-        SqlTable sqlTable = database.getTable("expense");
-        List<DataModel> modelList = toDataModels(database, sqlTable, req);
+        List<DataModel> modelList = SqlMapper.toDataModels(database, "expense", req);
         List<DataSet> dataSets = new ArrayList<>();
         for (DataModel model : modelList) {
             setTransactionCode(model);
             setStatus(model);
-            String error = isValidRequired(sqlTable, "required", model);
+            String error = SqlMapper.isValid(database, "expense", "required", model);
             if (error != null) {
                 throw new LocaleException(error);
             }
-            dataSets.add(model.as());
+            dataSets.add(model);
         }
-        SqlTransaction transaction = database.beginTransaction();
-        transaction.save("expense", "edit", dataSets);
-        transaction.commit();
+        SqlTransaction transaction = database.instance(SqlTransaction.class);
+        transaction.begin().save("expense", "edit", dataSets).commit();
         return req;
     }
 
     @Path("/delete")
     public JsonArray delete(JsonArray req) throws SQLException {
-        SqlTable sqlTable = database.getTable("expense");
-        List<DataSet> dataSets = toDataSets(database, sqlTable, req);
-        SqlTransaction transaction = database.beginTransaction();
-        transaction.delete("expense", dataSets);
-        transaction.commit();
+        List<DataSet> dataSets = SqlMapper.toDataSets(database, "expense", req);
+        SqlTransaction transaction = database.instance(SqlTransaction.class);
+        transaction.begin().delete("expense", dataSets).commit();
         return req;
     }
 

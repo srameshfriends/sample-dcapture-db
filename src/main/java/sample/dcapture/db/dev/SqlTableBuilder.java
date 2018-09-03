@@ -1,30 +1,16 @@
 package sample.dcapture.db.dev;
 
-import dcapture.db.core.ColumnGroup;
-import dcapture.db.core.SqlColumn;
-import dcapture.db.core.SqlTable;
-import dcapture.db.core.SqlTypeMap;
+import dcapture.db.core.*;
 
 import javax.json.*;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 class SqlTableBuilder {
-    private SqlTypeMap sqlTypeMap;
-
-    private Class<?> getType(String type, String tableName) {
-        if (type == null || type.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            return Class.forName(type.trim());
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        throw new IllegalArgumentException(tableName + " : table type class not found (" + type + ")");
-    }
+    private SqlDatabase database;
 
     private JsonArray getJsonArray(JsonObject obj, String key) {
         JsonValue value = obj.get(key);
@@ -62,7 +48,6 @@ class SqlTableBuilder {
         }
         String name = getString(obj, "name");
         JsonArray columnArray = getJsonArray(obj, "columns");
-        JsonArray orderByArray = getJsonArray(obj, "orderBy");
         if (columnArray == null || columnArray.isEmpty()) {
             return null;
         }
@@ -79,26 +64,10 @@ class SqlTableBuilder {
         if (fetchList.isEmpty()) {
             return null;
         }
-        List<String> orderByList = new ArrayList<>();
-        if (orderByArray != null && !orderByArray.isEmpty()) {
-            for (JsonValue orderBy : orderByArray) {
-                if (orderBy instanceof JsonString) {
-                    String col = ((JsonString) orderBy).getString();
-                    col = col.trim().toLowerCase();
-                    if (columnList.contains(col)) {
-                        orderByList.add(col);
-                    }
-                }
-            }
-        }
-        if (orderByList.isEmpty()) {
-            orderByList.add(fetchList.get(0));
-        }
-        String[] obc = new String[orderByList.size()];
-        return new ColumnGroup(sqlTable.getName(), name, fetchList, orderByList.toArray(obc));
+        return new ColumnGroup(sqlTable.getName(), name, fetchList);
     }
 
-    private SqlColumn getSqlColumn(SqlTable sqlTable, JsonObject obj) {
+    private SqlColumn getSqlColumn(SqlTable sqlTable, JsonObject obj) throws SQLException {
         String name = getString(obj, "name");
         String type = getString(obj, "type");
         String fieldName = getString(obj, "field");
@@ -115,6 +84,7 @@ class SqlTableBuilder {
         if (type == null || type.trim().isEmpty()) {
             throw new NullPointerException("Table : " + sqlTable.getName() + ", Column : " + name + " >> type should not be null or empty");
         }
+        SqlTypeMap sqlTypeMap = database.instance(SqlTypeMap.class);
         final int sqlType = sqlTypeMap.getSqlType(type);
         final Class<?> model = sqlTypeMap.getType(type);
         if (0 == sqlType) {
@@ -139,24 +109,22 @@ class SqlTableBuilder {
         return sqlColumn;
     }
 
-    private SqlTable getSqlTable(JsonObject obj) {
+    private SqlTable getSqlTable(JsonObject obj) throws SQLException {
         boolean isColumnGroupEmpty = false;
         String tableName = getString(obj, "name");
         String type = getString(obj, "type");
-        String modelText = getString(obj, "model");
         boolean isPrimary = getBoolean(obj, "primary");
         boolean isVersion = getBoolean(obj, "version");
         JsonArray columns = getJsonArray(obj, "columns");
         JsonArray uniqueColumnArray = getJsonArray(obj, "uniqueColumns");
         JsonArray fgArray = getJsonArray(obj, "columnGroups");
-        Class<?> model = getType(modelText, tableName);
         if (tableName == null || tableName.trim().isEmpty()) {
             throw new NullPointerException(tableName + " : \t table name should not be null or empty");
         }
         if (columns == null || 2 > columns.size()) {
             throw new NullPointerException(tableName + " : \t table columns should not be null or minimum 2 columns required");
         }
-        SqlTable sqlTable = new SqlTable(tableName, type, model);
+        SqlTable sqlTable = new SqlTable(tableName, type);
         if (isPrimary) {
             sqlTable.setPrimary();
         }
@@ -206,20 +174,14 @@ class SqlTableBuilder {
             for (SqlColumn column : columnList) {
                 colList.add(column.getName());
             }
-            String[] orderBy;
-            if (sqlTable.getPrimary() != null) {
-                orderBy = new String[]{sqlTable.getPrimary().getName()};
-            } else {
-                orderBy = new String[]{colList.get(0)};
-            }
-            columnGroups.add(new ColumnGroup(sqlTable.getName(), "", colList, orderBy));
+            columnGroups.add(new ColumnGroup(sqlTable.getName(), "", colList));
         }
         sqlTable.setColumnGroups(columnGroups);
         return sqlTable;
     }
 
-    List<SqlTable> getTableList(SqlTypeMap sqlTypeMap, JsonArray array) {
-        this.sqlTypeMap = sqlTypeMap;
+    List<SqlTable> getTableList(SqlDatabase database, JsonArray array) throws SQLException {
+        this.database = database;
         List<SqlTable> tableList = new ArrayList<>();
         for (JsonValue value : array) {
             if (value instanceof JsonObject) {

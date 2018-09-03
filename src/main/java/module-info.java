@@ -7,7 +7,6 @@ module sample.dcapture.db {
     requires javax.servlet.api;
     requires javax.inject;
     requires org.glassfish.java.json;
-    requires org.apache.logging.log4j;
     requires org.apache.commons.io;
     requires jetty.io;
     requires jetty.server;

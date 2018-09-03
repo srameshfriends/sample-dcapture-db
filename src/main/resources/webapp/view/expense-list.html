@@ -29,8 +29,10 @@
                 <thead data-id="expenseList">
                 <tr>
                     <th data-type="selectable" width="50px"></th>
+                    <th data-type="text" data-id="expenseList.expense_date" data-locale="expense.expense_date" width="140px"></th>
                     <th data-type="link" data-id="expenseList.code" data-locale="expense.code" width="140px"></th>
                     <th data-type="text" data-id="expenseList.description" data-locale="expense.description"></th>
+                    <th data-type="reference" data-columns="code name" data-id="expenseList.expense_category" data-locale="expense.expense_category"></th>
                     <th data-type="reference" data-columns="code" data-id="expenseList.currency" data-locale="expense.currency" width="100px"></th>
                     <th data-type="double" data-id="expenseList.amount" data-locale="expense.amount" width="100px"></th>
                 </tr>

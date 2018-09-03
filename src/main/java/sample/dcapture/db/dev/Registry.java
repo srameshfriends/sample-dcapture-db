@@ -2,7 +2,6 @@ package sample.dcapture.db.dev;
 
 import dcapture.db.core.SqlDatabase;
 import dcapture.db.core.SqlForwardTool;
-import dcapture.db.core.SqlLogger;
 import dcapture.db.core.SqlTable;
 import dcapture.db.postgres.PgDatabase;
 import dcapture.io.BaseSettings;
@@ -10,16 +9,15 @@ import dcapture.io.DispatcherRegistry;
 import dcapture.io.Localization;
 import io.github.pustike.inject.Injector;
 import io.github.pustike.inject.bind.Binder;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import sample.dcapture.db.service.*;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
-public class Registry implements DispatcherRegistry, SqlLogger {
-    private static final Logger logger = LogManager.getLogger(Registry.class);
+public class Registry implements DispatcherRegistry {
+    private static final Logger logger = Logger.getLogger(Registry.class.getName());
 
     @Override
     public void inject(Binder binder) {
@@ -30,10 +28,7 @@ public class Registry implements DispatcherRegistry, SqlLogger {
             binder.bind(Localization.class).toInstance(localization);
             binder.bind(SqlDatabase.class).toInstance(getDatabase(settings));
         } catch (Exception ex) {
-            logger.error(ex.getMessage());
-            if (logger.isDebugEnabled()) {
-                ex.printStackTrace();
-            }
+            ex.printStackTrace();
         }
     }
 
@@ -63,31 +58,14 @@ public class Registry implements DispatcherRegistry, SqlLogger {
     private SqlDatabase getDatabase(BaseSettings settings) throws Exception {
         SqlDatabase database = new PgDatabase();
         SqlTableBuilder tableBuilder = new SqlTableBuilder();
-        List<SqlTable> tableList = tableBuilder.getTableList(database.getTypeMap(), settings.getDatabaseConfig());
-        database.config("logger", this);
+        List<SqlTable> tables = tableBuilder.getTableList(database, settings.getDatabaseConfig());
         database.config("schema", "dcapture");
         database.config("url", settings.getDatabaseUrl());
         database.config("user", BaseSettings.decode(settings.getDatabaseUser()));
         database.config("password", BaseSettings.decode(settings.getDatabasePassword()));
         database.config("autoCommit", false);
-        database.config("tables", tableList);
-        database.config("logger", this);
+        database.config("tables", tables);
         database.start(SqlForwardTool.class.getSimpleName());
         return database;
-    }
-
-    @Override
-    public void onSqlLog(String description) {
-        if (logger.isDebugEnabled()) {
-            logger.info(description);
-        }
-    }
-
-    @Override
-    public void onSqlError(Exception ex) {
-        logger.error(ex.getMessage());
-        if (logger.isDebugEnabled()) {
-            ex.printStackTrace();
-        }
     }
 }

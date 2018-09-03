@@ -1,13 +1,10 @@
 package sample.dcapture.db.service;
 
 import dcapture.db.core.*;
-import dcapture.db.postgres.PgQuery;
 import dcapture.io.BaseSettings;
 import dcapture.io.JsonRequest;
 import dcapture.io.JsonResponse;
 import dcapture.io.Localization;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import javax.inject.Inject;
 import javax.json.Json;
@@ -19,10 +16,11 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 @Path("/session")
-public class SessionService extends SqlMapper {
-    private static final Logger logger = LogManager.getLogger(SessionService.class);
+public class SessionService {
+    private static final Logger logger = Logger.getLogger("sample.dcapture.db.service");
     private SqlDatabase database;
     private Localization locale;
     private BaseSettings settings;
@@ -70,25 +68,23 @@ public class SessionService extends SqlMapper {
             response.error(locale.get("email.invalid"));
             return;
         }
-        PgQuery query = new PgQuery("SELECT id FROM ");
-        query.add(database.getSchema()).add(".apps_user").add(" WHERE email = ?").setParameter(email);
-        Long id = (Long) database.getReader().getValue(query);
+        SqlQuery query = database.instance(SqlQuery.class);
+        query.add("SELECT id FROM ").addTable("apps_user").add(" WHERE email = ?").setParameter(email);
+        Long id = (Long)query.getValue();
         if (id == null || 1 > id) {
             response.error(locale.get("email.invalid"));
             return;
         }
-        SqlTransaction transaction = database.beginTransaction();
-        transaction.execute(new PgQuery("DELETE FROM session_batch WHERE email = ?").setParameter(email));
-        transaction.commit();
+        SqlQuery deleteQuery = database.instance(SqlQuery.class);
+        deleteQuery.delete("session_batch").add(" WHERE email = ?").setParameter(email).execute();
         String code = UUID.randomUUID().toString();
         DataModel model = new DataModel();
         model.setValue("email", email);
         model.setValue("code", code);
         model.setValue("created_on", LocalDateTime.now());
         model.setValue("client", getClientInfo(request));
-        transaction = database.beginTransaction();
-        transaction.insert("session_batch", "edit", model.as());
-        transaction.commit();
+        SqlTransaction transaction = database.instance(SqlTransaction.class);
+        transaction.begin().insert("session_batch", "edit", model).commit();
         response.sendObject(toJsonObject("", "", email, code, false));
     }
 
@@ -104,28 +100,23 @@ public class SessionService extends SqlMapper {
             response.error(locale.get("userOrPasswordNotValid"));
             return;
         }
-        SqlQuery query = new PgQuery("SELECT email FROM ");
-        query.add(database.getSchema()).add(".session_batch").add(" WHERE ").add(" code = ?").setParameter(code);
-        String email = (String) database.getReader().getValue(query);
+        SqlQuery query = database.instance(SqlQuery.class);
+        query.select("session_batch", "email").add(" WHERE ").add(" code = ?").setParameter(code);
+        String email = (String) query.getValue();
         if (email == null) {
             response.sendObject(toJsonObject("", "", "", "", false));
             return;
         }
-        query = querySelectAll(database, "apps_user").add(" WHERE ")
-                .add(" email = ?").setParameter(email).limit(1);
-        DataSet appsUser = database.getReader().first("apps_user", query);
+        DataSetQuery userQuery = database.instance(DataSetQuery.class);
+        userQuery.select("apps_user").add(" WHERE ").add(" email = ?").setParameter(email).limit(1);
+        DataSet appsUser = userQuery.load();
         if (appsUser == null || !pass.equals(appsUser.getString("password", ""))) {
             response.error(locale.get("userOrPasswordNotValid"));
             return;
         }
-        query = new PgQuery().add("DELETE FROM ");
-        if (database.getSchema() != null) {
-            query.add(database.getSchema()).add(".");
-        }
-        query.add("session_batch WHERE email = ?").setParameter(email);
-        SqlTransaction transaction = database.beginTransaction();
-        transaction.execute(query);
-        transaction.commit();
+        SqlQuery deleteQuery = database.instance(SqlQuery.class);
+        deleteQuery.delete("session_batch").add("WHERE email = ?").setParameter(email);
+        deleteQuery.execute();
         HttpSession session = request.getSession(true);
         session.setAttribute("apps_user", appsUser);
         String userName = appsUser.getString("name", "");
@@ -159,9 +150,7 @@ public class SessionService extends SqlMapper {
                 host = local.getHostName();
             }
         } catch (UnknownHostException ex) {
-            if (logger.isTraceEnabled()) {
-                ex.printStackTrace();
-            }
+            ex.printStackTrace();
             host = "host";
             address = "address";
         }

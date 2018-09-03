@@ -1,9 +1,7 @@
 package sample.dcapture.db.service;
 
 import dcapture.db.core.*;
-import dcapture.db.postgres.PgQuery;
 import dcapture.io.JsonMapper;
-import dcapture.io.Paging;
 
 import javax.json.*;
 import java.math.BigDecimal;
@@ -186,7 +184,8 @@ public class SqlMapper extends JsonMapper {
         return new DataSet(id, rev, values);
     }
 
-    public static List<DataSet> toDataSets(SqlDatabase database, SqlTable sqlTable, JsonArray array) {
+    public static List<DataSet> toDataSets(SqlDatabase database, String tableName, JsonArray array) {
+        SqlTable sqlTable = database.getTable(tableName);
         List<DataSet> dataSetList = new ArrayList<>();
         List<JsonObject> objectList = getList(array);
         for (JsonObject object : objectList) {
@@ -195,103 +194,14 @@ public class SqlMapper extends JsonMapper {
         return dataSetList;
     }
 
-    public static List<DataModel> toDataModels(SqlDatabase database, SqlTable sqlTable, JsonArray array) {
+    public static List<DataModel> toDataModels(SqlDatabase database, String tableName, JsonArray array) {
         List<DataModel> models = new ArrayList<>();
         List<JsonObject> objectList = getList(array);
+        SqlTable sqlTable = database.getTable(tableName);
         for (JsonObject object : objectList) {
             models.add(toDataModel(database, sqlTable, object));
         }
         return models;
-    }
-
-    public static SqlQuery[] querySearchCount(SqlDatabase database, SqlTable sqlTable, Paging paging) {
-        SqlQuery dataQuery = new PgQuery(), countQuery = new PgQuery();
-        dataQuery.add("SELECT ");
-        countQuery.add("SELECT COUNT(*) ");
-        if (sqlTable.getPrimary() != null) {
-            dataQuery.add(sqlTable.getPrimary().getName()).add(",");
-        }
-        if (sqlTable.getVersion() != null) {
-            dataQuery.add(sqlTable.getVersion().getName()).add(",");
-        }
-        StringBuilder sb = new StringBuilder();
-        for (SqlColumn col : sqlTable.getColumns()) {
-            sb.append(col.getName()).append(",");
-        }
-        sb.replace(sb.length() - 1, sb.length(), " ");
-        dataQuery.add(sb.toString()).add(" FROM ");
-        countQuery.add(" FROM ");
-        if (database.getSchema() != null) {
-            dataQuery.add(database.getSchema()).add(".");
-            countQuery.add(database.getSchema()).add(".");
-        }
-        dataQuery.add(sqlTable.getName());
-        countQuery.add(sqlTable.getName());
-        if (paging.getSearchText() != null && !paging.getSearchText().trim().isEmpty()) {
-            dataQuery.add(" WHERE ");
-            dataQuery.searchText(sqlTable, "search", paging.getSearchText());
-            countQuery.add(" WHERE ");
-            countQuery.searchText(sqlTable, "search", paging.getSearchText());
-        }
-        dataQuery.add(" ORDER BY ");
-        if (paging.getSortingOrder().isEmpty()) {
-            ColumnGroup columnGroup = sqlTable.getColumnGroup("search");
-            if (columnGroup.getOrderBy() != null && 0 < columnGroup.getOrderBy().length) {
-                StringBuilder qsb = new StringBuilder();
-                for (String order : columnGroup.getOrderBy()) {
-                    qsb.append(order).append(",");
-                }
-                qsb.replace(qsb.length() - 1, qsb.length(), " ");
-                dataQuery.add(qsb.toString());
-            } else {
-                dataQuery.add(sqlTable.getColumns().iterator().next().getName());
-            }
-        } else {
-            StringBuilder qsb = new StringBuilder();
-            for (String order : paging.getSortingOrder()) {
-                qsb.append(order).append(",");
-            }
-            qsb.replace(qsb.length() - 1, qsb.length(), " ");
-            dataQuery.add(qsb.toString());
-        }
-        if (0 < paging.getLimit()) {
-            dataQuery.limit(paging.getLimit(), paging.getStart());
-        }
-        return new SqlQuery[]{dataQuery, countQuery};
-    }
-
-    public static SqlQuery querySelectAll(SqlDatabase database, String sqlTable) {
-        return querySelectAll(database, database.getTable(sqlTable));
-    }
-
-    public static SqlQuery querySelectAll(SqlDatabase database, SqlTable sqlTable) {
-        SqlQuery query = new PgQuery();
-        query.add("SELECT ");
-        if (sqlTable.getPrimary() != null) {
-            query.add(sqlTable.getPrimary().getName()).add(",");
-        }
-        if (sqlTable.getVersion() != null) {
-            query.add(sqlTable.getVersion().getName()).add(",");
-        }
-        StringBuilder sb = new StringBuilder();
-        sqlTable.getColumns().forEach(col -> sb.append(col.getName()).append(","));
-        sb.replace(sb.length() - 1, sb.length(), " ");
-        query.add(sb.toString()).add(" FROM ");
-        if (database.getSchema() != null) {
-            query.add(database.getSchema()).add(".");
-        }
-        query.add(sqlTable.getName()).add(" ");
-        return query;
-    }
-
-    public static Paging parsePaging(JsonObject obj) {
-        Paging paging = new Paging();
-        paging.setStart(getInt(obj, "start"));
-        paging.setLimit(getInt(obj, "limit"));
-        paging.setSearchText(getString(obj, "searchText"));
-        List<String> orderByList = getList(obj, "sortingOrder");
-        paging.setSortingOrder(orderByList);
-        return paging;
     }
 
     public static DataSet merge(DataSet target, DataSet source) {
@@ -377,7 +287,8 @@ public class SqlMapper extends JsonMapper {
         return json.build();
     }
 
-    static JsonArray toJsonArray(SqlDatabase database, SqlTable sqlTable, List<DataSet> dataSetList) {
+    static JsonArray toJsonArray(SqlDatabase database, String tableName, List<DataSet> dataSetList) {
+        SqlTable sqlTable = database.getTable(tableName);
         JsonArrayBuilder array = Json.createArrayBuilder();
         if (dataSetList != null) {
             for (DataSet dataSet : dataSetList) {
@@ -387,7 +298,8 @@ public class SqlMapper extends JsonMapper {
         return array.build();
     }
 
-    static String isValidRequired(SqlTable sqlTable, String columnGroup, DataSet dataSet) {
+    public static String isValid(SqlDatabase database, String tableName, String columnGroup, DataSet dataSet) {
+        SqlTable sqlTable = database.getTable(tableName);
         ColumnGroup group = sqlTable.getColumnGroup(columnGroup);
         for (String col : group.getColumns()) {
             Object value = dataSet.getValue(col);
@@ -400,13 +312,6 @@ public class SqlMapper extends JsonMapper {
             }
         }
         return null;
-    }
-
-    public static void setPaging(JsonObjectBuilder builder, Paging paging, int totalRecords, int length) {
-        builder.add("start", paging.getStart());
-        builder.add("limit", paging.getLimit());
-        builder.add("totalRecords", totalRecords);
-        builder.add("length", length);
     }
 
     private static String toString(Date date) {

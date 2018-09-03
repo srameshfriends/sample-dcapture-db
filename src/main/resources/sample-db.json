@@ -30,9 +30,6 @@
           "name",
           "password",
           "status"
-        ],
-        "orderBy": [
-          "email"
         ]
       },
       {
@@ -51,6 +48,14 @@
       },
       {
         "name": "search",
+        "columns": [
+          "email",
+          "name",
+          "status"
+        ]
+      },
+      {
+        "name": "searchText",
         "columns": [
           "email",
           "name"
@@ -89,9 +94,6 @@
           "email",
           "client",
           "created_on"
-        ],
-        "orderBy": [
-          "email"
         ]
       }
     ]
@@ -122,9 +124,6 @@
           "code",
           "name",
           "status"
-        ],
-        "orderBy": [
-          "code"
         ]
       },
       {
@@ -137,6 +136,14 @@
       },
       {
         "name": "search",
+        "columns": [
+          "code",
+          "name",
+          "status"
+        ]
+      },
+      {
+        "name": "searchText",
         "columns": [
           "code",
           "name"
@@ -180,9 +187,6 @@
           "precision",
           "symbol",
           "status"
-        ],
-        "orderBy": [
-          "code"
         ]
       },
       {
@@ -196,6 +200,16 @@
       },
       {
         "name": "search",
+        "columns": [
+          "code",
+          "name",
+          "symbol",
+          "precision",
+          "status"
+        ]
+      },
+      {
+        "name": "searchText",
         "columns": [
           "code",
           "name"
@@ -244,6 +258,14 @@
       },
       {
         "name": "search",
+        "columns": [
+          "code",
+          "name",
+          "status"
+        ]
+      },
+      {
+        "name": "searchText",
         "columns": [
           "code",
           "name"
@@ -306,9 +328,6 @@
           "currency",
           "amount",
           "status"
-        ],
-        "orderBy": [
-          "code"
         ]
       },
       {
@@ -324,6 +343,17 @@
       },
       {
         "name": "search",
+        "columns": [
+          "expense_date",
+          "code",
+          "description",
+          "expense_category",
+          "currency",
+          "amount"
+        ]
+      },
+      {
+        "name": "searchText",
         "columns": [
           "code",
           "description"

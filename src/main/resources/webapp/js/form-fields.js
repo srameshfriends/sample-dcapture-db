@@ -349,7 +349,8 @@ function LookupField(cfg, listener) {
             self.search(req);
         }
     });
-    self.searchFld.on("click", function (evt) {
+    self.searchFld.keyup(function (evt) {
+        evt.preventDefault();
         self.searchDelay.cancelAll();
         if (13 === evt.keyCode) {
             self.search(self.getRequest(0));
@@ -358,6 +359,7 @@ function LookupField(cfg, listener) {
                 self.search(self.getRequest(0));
             });
         }
+        return false;
     });
     self.clearBtn.on("click", function (evt) {
         evt.preventDefault();

@@ -12,9 +12,14 @@ Java -version 10
 
 ### Development vs Production
 
-Localization instance load method for production usage. 
-log4j2.properties replaced using log4j2-production.properties
-
+1. Localization instance load method for production usage.
+2. log4j2.properties replaced using log4j2-production.properties 
+3. mvn package  (Terminal maven command - sources package into target folder)
+4. mvn dependency:copy-dependencies (Terminal maven command helps to copy dependency to target folder)
+5. After dependency copied folder renamed to lib (All dependencies)
+6. Run following command to execute application  
+6.1  java -cp sample-dcapture-db.jar sample.dcapture.db.dev.Main
+ 
 ##### July-2018
 
 IM01
@@ -32,4 +37,11 @@ IM02
 - >bootstrap unused dependencies are removed
 - >LookupField visual effect improved
 - >User Register two page concept are updated
-- >simple-grid renamed as data-table, main.js renamed to core.js 
+- >simple-grid renamed as data-table, main.js renamed to core.js
+
+##### Sep-2018
+
+IM03
+
+- >dcapture-db and dcapture-io changes are updated
+- >Log4j dependency removed, default java logging used

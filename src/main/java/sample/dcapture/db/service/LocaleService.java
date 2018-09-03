@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Properties;
 
 @Path("/locale")
-public class LocaleService extends SqlMapper {
+public class LocaleService {
     private Localization locale;
 
     @Inject
