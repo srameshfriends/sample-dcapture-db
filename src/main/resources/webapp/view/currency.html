@@ -12,50 +12,31 @@
                     </span>
                 </div>
                 <div class="card-body">
-                    <form data-id="currency" data-type="form" class="form" method="post">
+                    <form data-id="currency" data-type="form" class="form" method="post" role="form">
                         <input type="hidden" data-id="currency.id" data-type="hidden">
                         <input type="hidden" data-id="currency.rev" data-type="hidden">
-                        <div class="form-group row">
-                            <label data-locale="currency.code"
-                                   class="col-lg-4 col-form-label form-control-label"></label>
-                            <div class="col-lg-8">
-                                <input data-id="currency.code" data-type="text" class="form-control">
-                            </div>
+                        <div class="form-group">
+                            <label data-locale="currency.code" class="form-control-label"></label>
+                            <input data-id="currency.code" data-type="text" class="form-control">
                         </div>
-                        <div class="form-group row">
-                            <label data-locale="currency.name"
-                                   class="col-lg-4 col-form-label form-control-label"></label>
-                            <div class="col-lg-8">
-                                <input data-id="currency.name" data-type="text" class="form-control">
-                            </div>
+                        <div class="form-group">
+                            <label data-locale="currency.name" class="form-control-label"></label>
+                            <input data-id="currency.name" data-type="text" class="form-control">
                         </div>
-                        <div class="form-group row">
-                            <label data-locale="currency.symbol"
-                                   class="col-lg-4 col-form-label form-control-label"></label>
-                            <div class="col-lg-8">
-                                <input data-id="currency.symbol" data-type="text" class="form-control">
-                            </div>
+                        <div class="form-group">
+                            <label data-locale="currency.symbol" class="form-control-label"></label>
+                            <input data-id="currency.symbol" data-type="text" class="form-control">
                         </div>
-                        <div class="form-group row">
-                            <label data-locale="currency.precision"
-                                   class="col-lg-4 col-form-label form-control-label"></label>
-                            <div class="col-lg-8">
-                                <input data-id="currency.precision" data-type="number" type="number"
-                                       class="form-control">
-                            </div>
+                        <div class="form-group">
+                            <label data-locale="currency.precision" class="form-control-label"></label>
+                            <input data-id="currency.precision" type="number" data-type="number" class="form-control">
                         </div>
-                        <div class="form-group row">
-                            <label data-locale="currency.status"
-                                   class="col-lg-4 col-form-label form-control-label"></label>
-                            <div class="col-lg-8">
-                                <input data-id="currency.status" data-type="text" type="text" class="form-control">
-                            </div>
+                        <div class="form-group">
+                            <label data-locale="currency.status" class="form-control-label"></label>
+                            <input data-id="currency.status" data-type="text" class="form-control">
                         </div>
-                        <div class="form-group row">
-                            <label class="col-lg-4 col-form-label form-control-label"></label>
-                            <div class="col-lg-8">
-                                <button id="actionSave" data-locale="actionSave" class="btn btn-outline-primary"></button>
-                            </div>
+                        <div class="form-group">
+                            <button id="actionSave" type="button" class="btn btn-outline-primary" data-locale="actionSave" ></button>
                         </div>
                     </form>
                 </div>

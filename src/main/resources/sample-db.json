@@ -319,7 +319,20 @@
     ],
     "columnGroups": [
       {
-        "name": "edit",
+        "name": "insert",
+        "columns": [
+          "code",
+          "expense_date",
+          "description",
+          "expense_category",
+          "currency",
+          "amount",
+          "created_by",
+          "status"
+        ]
+      },
+      {
+        "name": "update",
         "columns": [
           "code",
           "expense_date",

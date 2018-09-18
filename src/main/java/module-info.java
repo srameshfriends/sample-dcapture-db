@@ -13,5 +13,6 @@ module sample.dcapture.db {
     requires jetty.servlet;
     requires pustike.inject;
     requires jetty.util;
+    requires h2;
     opens sample.dcapture.db.service to dcapture.io, pustike.inject;
 }

@@ -2,6 +2,7 @@ package sample.dcapture.db.service;
 
 import dcapture.db.core.*;
 import dcapture.io.FormModel;
+import dcapture.io.JsonRequest;
 import dcapture.io.LocaleException;
 
 import javax.inject.Inject;
@@ -27,24 +28,18 @@ public class ExpenseService {
     @Path("/search")
     public JsonObject search(JsonObject req) throws SQLException {
         FormModel model = new FormModel(req);
-        DataSetQuery dataQuery = database.instance(DataSetQuery.class);
-        dataQuery.selectColumnGroup("expense", "search");
-        String searchText = model.getStringSafe("searchText");
-        if (!searchText.isEmpty()) {
-            dataQuery.add(" WHERE ").searchColumnGroup(searchText, "searchText");
-        }
-        dataQuery.add(" ORDER BY expense_date DESC, code DESC");
-        long start = model.getLongSafe("start");
+        final long start = model.getLongSafe("start");
         int limit = model.getIntSafe("limit");
         limit = 0 < limit ? limit : 20;
-        dataQuery.limit(limit, start);
+        DataSetQuery dataQuery = database.instance(DataSetQuery.class);
+        dataQuery.selectColumnGroup("expense", "search");
+        SqlCondition condition = database.instance(SqlCondition.class);
+        condition.likeIgnoreCase(model.getStringSafe("searchText"), dataQuery.getColumns("searchText"));
+        dataQuery.where(condition).add(" ORDER BY expense_date DESC, code DESC").limit(limit, start);
         List<DataSet> dataList = dataQuery.loadAll();
         //
         SqlQuery totalQuery = database.instance(SqlQuery.class);
-        totalQuery.add("SELECT COUNT(*) ").add(" FROM ").addTable("expense");
-        if (!searchText.isEmpty()) {
-            dataQuery.add(" WHERE ").searchColumnGroup(searchText, "search");
-        }
+        totalQuery.add("SELECT COUNT(*) ").add(" FROM ").addTable("expense").where(condition);
         Number totalRecords = (Number) totalQuery.getValue();
         JsonObjectBuilder result = Json.createObjectBuilder();
         result.add("expense", SqlMapper.toJsonArray(database, "expense", dataList));
@@ -56,12 +51,12 @@ public class ExpenseService {
     }
 
     @Path("/save")
-    public JsonArray save(JsonArray req) throws SQLException {
-        List<DataModel> modelList = SqlMapper.toDataModels(database, "expense", req);
+    public JsonArray save(JsonRequest req) throws SQLException {
+        List<DataModel> modelList = SqlMapper.toDataModels(database, "expense", req.getJsonArray());
         List<DataSet> dataSets = new ArrayList<>();
+        DataSet sessionUser = (DataSet)req.getSessionAttribute("session_user");
         for (DataModel model : modelList) {
-            setTransactionCode(model);
-            setStatus(model);
+            setDefaultValue(model, sessionUser);
             String error = SqlMapper.isValid(database, "expense", "required", model);
             if (error != null) {
                 throw new LocaleException(error);
@@ -69,8 +64,8 @@ public class ExpenseService {
             dataSets.add(model);
         }
         SqlTransaction transaction = database.instance(SqlTransaction.class);
-        transaction.begin().save("expense", "edit", dataSets).commit();
-        return req;
+        transaction.begin().save("expense", null, dataSets).commit();
+        return Json.createArrayBuilder().build();
     }
 
     @Path("/delete")
@@ -81,16 +76,7 @@ public class ExpenseService {
         return req;
     }
 
-    private void setStatus(DataModel source) {
-        String status = (String) source.getValue("status");
-        if ("Active".equals(status) || "Inactive".equals(status)) {
-            source.setValue("status", status);
-        } else {
-            source.setValue("status", "Active");
-        }
-    }
-
-    private void setTransactionCode(DataModel source) {
+    private void setDefaultValue(DataModel source, DataSet sessionUser) {
         if (source.getValue("code") == null) {
             UUID random = UUID.randomUUID();
             String code = random.toString();
@@ -98,6 +84,16 @@ public class ExpenseService {
                 code = code.substring(0, 4);
             }
             source.setValue("code", code);
+        }
+        String status = (String) source.getValue("status");
+        if ("Active".equals(status) || "Inactive".equals(status)) {
+            source.setValue("status", status);
+        } else {
+            source.setValue("status", "Active");
+        }
+        if(1 > source.getId()) {
+            System.out.println("Created By : " + sessionUser.getId());
+            source.setValue("created_by", sessionUser);
         }
     }
 }

@@ -18,7 +18,7 @@ Java -version 10
 4. mvn dependency:copy-dependencies (Terminal maven command helps to copy dependency to target folder)
 5. After dependency copied folder renamed to lib (All dependencies)
 6. Run following command to execute application  
-6.1  java -cp sample-dcapture-db.jar sample.dcapture.db.dev.Main
+6.1  java -cp sample-dcapture-db.jar sample.dcapture.db.luncher.Main
  
 ##### July-2018
 
@@ -45,3 +45,9 @@ IM03
 
 - >dcapture-db and dcapture-io changes are updated
 - >Log4j dependency removed, default java logging used
+
+IM04
+
+- >dcapture-db and dcapture-io changes are updated
+- >H2DatabaseFactory helps to start h2 database for development purpose
+- >SqlTableBuilder removed, builder is added in db project

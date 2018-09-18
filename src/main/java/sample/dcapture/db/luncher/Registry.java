@@ -1,8 +1,11 @@
-package sample.dcapture.db.dev;
+package sample.dcapture.db.luncher;
 
 import dcapture.db.core.SqlDatabase;
 import dcapture.db.core.SqlForwardTool;
 import dcapture.db.core.SqlTable;
+import dcapture.db.core.SqlTypeMap;
+import dcapture.db.h2.H2Database;
+import dcapture.db.json.SqlTableBuilder;
 import dcapture.db.postgres.PgDatabase;
 import dcapture.io.BaseSettings;
 import dcapture.io.DispatcherRegistry;
@@ -11,13 +14,10 @@ import io.github.pustike.inject.Injector;
 import io.github.pustike.inject.bind.Binder;
 import sample.dcapture.db.service.*;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
-public class Registry implements DispatcherRegistry {
-    private static final Logger logger = Logger.getLogger(Registry.class.getName());
+public abstract class Registry implements DispatcherRegistry {
 
     @Override
     public void inject(Binder binder) {
@@ -50,15 +50,25 @@ public class Registry implements DispatcherRegistry {
         try {
             SqlDatabase database = injector.getInstance(SqlDatabase.class);
             database.shutdown();
-        } catch (SQLException e) {
+            stop();
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    protected abstract void start(String... args) throws Exception;
+
+    protected abstract void stop(String... args) throws Exception;
+
     private SqlDatabase getDatabase(BaseSettings settings) throws Exception {
-        SqlDatabase database = new PgDatabase();
         SqlTableBuilder tableBuilder = new SqlTableBuilder();
-        List<SqlTable> tables = tableBuilder.getTableList(database, settings.getDatabaseConfig());
+        SqlDatabase database;
+        if(settings.getDatabaseUrl().contains("postgresql")){
+            database = new PgDatabase();
+        } else {
+            database = new H2Database();
+        }
+        List<SqlTable> tables = tableBuilder.getTableList(database.instance(SqlTypeMap.class), settings.getDatabaseConfig());
         database.config("schema", "dcapture");
         database.config("url", settings.getDatabaseUrl());
         database.config("user", BaseSettings.decode(settings.getDatabaseUser()));

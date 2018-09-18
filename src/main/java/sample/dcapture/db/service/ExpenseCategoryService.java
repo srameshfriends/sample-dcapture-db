@@ -26,24 +26,18 @@ public class ExpenseCategoryService {
     @Path("/search")
     public JsonObject search(JsonObject req) throws SQLException {
         FormModel model = new FormModel(req);
-        DataSetQuery dataQuery = database.instance(DataSetQuery.class);
-        dataQuery.selectColumnGroup("expense_category", "search");
-        String searchText = model.getStringSafe("searchText");
-        if (!searchText.isEmpty()) {
-            dataQuery.add(" WHERE ").searchColumnGroup(searchText, "searchText");
-        }
-        dataQuery.add(" ORDER BY code, name");
         long start = model.getLongSafe("start");
         int limit = model.getIntSafe("limit");
         limit = 0 < limit ? limit : 20;
-        dataQuery.limit(limit, start);
+        DataSetQuery dataQuery = database.instance(DataSetQuery.class);
+        dataQuery.selectColumnGroup("expense_category", "search");
+        SqlCondition condition = database.instance(SqlCondition.class);
+        condition.likeIgnoreCase(model.getStringSafe("searchText"), dataQuery.getColumns("searchText"));
+        dataQuery.where(condition).add(" ORDER BY code, name").limit(limit, start);
         List<DataSet> dataList = dataQuery.loadAll();
         //
         SqlQuery totalQuery = database.instance(SqlQuery.class);
-        totalQuery.add("SELECT COUNT(*) ").add(" FROM ").addTable("expense_category");
-        if (!searchText.isEmpty()) {
-            dataQuery.add(" WHERE ").searchColumnGroup(searchText, "search");
-        }
+        totalQuery.add("SELECT COUNT(*) ").add(" FROM ").addTable("expense_category").where(condition);
         Number totalRecords = (Number) totalQuery.getValue();
         JsonObjectBuilder result = Json.createObjectBuilder();
         result.add("expense_category", SqlMapper.toJsonArray(database, "expense_category", dataList));

@@ -118,7 +118,7 @@ public class SessionService {
         deleteQuery.delete("session_batch").add("WHERE email = ?").setParameter(email);
         deleteQuery.execute();
         HttpSession session = request.getSession(true);
-        session.setAttribute("apps_user", appsUser);
+        session.setAttribute("session_user", appsUser);
         String userName = appsUser.getString("name", "");
         response.sendObject(toJsonObject(session.getId(), userName, email, "", true));
     }

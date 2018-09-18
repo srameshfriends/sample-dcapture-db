@@ -26,24 +26,18 @@ public class CurrencyService {
     @Path("/search")
     public JsonObject search(JsonObject req) throws SQLException {
         FormModel model = new FormModel(req);
-        DataSetQuery dataQuery = database.instance(DataSetQuery.class);
-        dataQuery.selectColumnGroup("currency", "search");
-        String searchText = model.getStringSafe("searchText");
-        if (!searchText.isEmpty()) {
-            dataQuery.add(" WHERE ").searchColumnGroup(searchText, "searchText");
-        }
-        dataQuery.add(" ORDER BY code, name");
         long start = model.getLongSafe("start");
         int limit = model.getIntSafe("limit");
         limit = 0 < limit ? limit : 20;
-        dataQuery.limit(limit, start);
+        DataSetQuery dataQuery = database.instance(DataSetQuery.class);
+        dataQuery.selectColumnGroup("currency", "search");
+        SqlCondition condition = database.instance(SqlCondition.class);
+        condition.likeIgnoreCase(model.getStringSafe("searchText"), dataQuery.getColumns("searchText"));
+        dataQuery.where(condition).add(" ORDER BY code, name").limit(limit, start);
         List<DataSet> dataList = dataQuery.loadAll();
         //
         SqlQuery totalQuery = database.instance(SqlQuery.class);
-        totalQuery.add("SELECT COUNT(*) ").add(" FROM ").addTable("currency");
-        if (!searchText.isEmpty()) {
-            dataQuery.add(" WHERE ").searchColumnGroup(searchText, "search");
-        }
+        totalQuery.add("SELECT COUNT(*) ").add(" FROM ").addTable("currency").where(condition);
         Number totalRecords = (Number) totalQuery.getValue();
         JsonObjectBuilder result = Json.createObjectBuilder();
         result.add("currency", SqlMapper.toJsonArray(database, "currency", dataList));
@@ -67,7 +61,7 @@ public class CurrencyService {
             dataSets.add(model);
         }
         SqlTransaction transaction = database.instance(SqlTransaction.class);
-        transaction.begin().update("currency", "edit", dataSets).commit();
+        transaction.begin().save("currency", "edit", dataSets).commit();
         return req;
     }
 

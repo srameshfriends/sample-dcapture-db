@@ -1,13 +1,17 @@
 package sample.dcapture.db.service;
 
 import dcapture.db.core.*;
+import dcapture.db.json.SqlJsonParser;
 import dcapture.io.FormModel;
 import dcapture.io.JsonRequest;
 import dcapture.io.LocaleException;
 import dcapture.io.Localization;
 
 import javax.inject.Inject;
-import javax.json.*;
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
 import javax.ws.rs.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -30,48 +34,27 @@ public class AppsUserService {
     @Path("/search")
     public JsonObject search(JsonObject req) throws Exception {
         FormModel model = new FormModel(req);
-        DataSetQuery dataQuery = database.instance(DataSetQuery.class);
-        dataQuery.selectColumnGroup("apps_user", "search");
-        String searchText = model.getStringSafe("searchText");
-        if (!searchText.isEmpty()) {
-            dataQuery.add(" WHERE ").searchColumnGroup(searchText, "searchText");
-        }
-        dataQuery.add(" ORDER BY email, name");
-        long start = model.getLongSafe("start");
+        final long start = model.getLongSafe("start");
         int limit = model.getIntSafe("limit");
         limit = 0 < limit ? limit : 20;
-        dataQuery.limit(limit, start);
+        DataSetQuery dataQuery = database.instance(DataSetQuery.class);
+        dataQuery.selectColumnGroup("apps_user", "search");
+        SqlCondition condition = database.instance(SqlCondition.class);
+        condition.likeIgnoreCase(model.getStringSafe("searchText"), dataQuery.getColumns("searchText"));
+        dataQuery.where(condition).add(" ORDER BY email, name").limit(limit, start);
         List<DataSet> dataList = dataQuery.loadAll();
         //
         SqlQuery totalQuery = database.instance(SqlQuery.class);
-        totalQuery.add("SELECT COUNT(*) ").add(" FROM ").addTable("apps_user");
-        if (!searchText.isEmpty()) {
-            dataQuery.add(" WHERE ").searchColumnGroup(searchText, "search");
-        }
+        totalQuery.add("SELECT COUNT(*) ").add(" FROM ").addTable("apps_user").where(condition);
         Number totalRecords = (Number) totalQuery.getValue();
-        JsonObjectBuilder result = Json.createObjectBuilder();
-        result.add("apps_user", toUserArray(dataList));
-        result.add("start", start);
-        result.add("limit", limit);
-        result.add("totalRecords", totalRecords.intValue());
-        result.add("length", dataList.size());
-        return result.build();
-    }
-
-    private JsonArray toUserArray(List<DataSet> dataSetList) {
-        JsonArrayBuilder array = Json.createArrayBuilder();
-        if (dataSetList != null) {
-            for (DataSet dataSet : dataSetList) {
-                JsonObjectBuilder builder = Json.createObjectBuilder();
-                builder.add("id", dataSet.getId());
-                builder.add("rev", dataSet.getRev());
-                builder.add("name", dataSet.getString("name", ""));
-                builder.add("email", dataSet.getString("email", ""));
-                builder.add("status", dataSet.getString("status", ""));
-                array.add(builder);
-            }
-        }
-        return array.build();
+        JsonObjectBuilder builder = Json.createObjectBuilder();
+        SqlJsonParser parser = new SqlJsonParser(database);
+        builder.add("apps_user", parser.getArray(dataList, "apps_user", "name", "email", "status"));
+        builder.add("start", start);
+        builder.add("limit", limit);
+        builder.add("totalRecords", totalRecords.intValue());
+        builder.add("length", dataList.size());
+        return builder.build();
     }
 
     @Path("/create1")
