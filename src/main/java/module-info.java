@@ -8,7 +8,9 @@ module sample.dcapture.db {
     requires javax.inject;
     requires org.glassfish.java.json;
     requires org.apache.commons.io;
+    requires commons.csv;
     requires jetty.io;
+    requires commons.fileupload;
     requires jetty.server;
     requires jetty.servlet;
     requires pustike.inject;

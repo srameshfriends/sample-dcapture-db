@@ -6,7 +6,7 @@
     <meta name="description" content="">
     <meta name="author" content="Ramesh Annachi">
     <title data-locale="apps_user"></title>
-    <link rel="icon" href="../favicon.ico">
+    <link rel="icon" href="../img/favicon.ico">
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/index.css" rel="stylesheet">
     <script src="../js/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
@@ -64,7 +64,26 @@
     </div>
 </div>
 
+<div id="hide" class="col-lg-8 col-xs-8">
+    <label class="hand-cursor">
+        <input type="file" nv-file-select uploader="$ctrl.uploader"/>
+        <span class="fa fa-camera"></span>
+        <span class="photo_text hidden-xs">Photo</span>
+    </label>
+</div>
 
+<form class="md-form" action="#">
+    <div class="file-field">
+        <input value="Export" class="btn btn-outline-primary" type="file" multiple>
+    </div>
+</form>
+
+<div class="btn-upload">
+    <label>
+        <input type="file" multiple>
+        <span class="btn btn-outline-primary">Export Currency</span>
+    </label>
+</div>
 
 <script>
     function loadMyPage() {

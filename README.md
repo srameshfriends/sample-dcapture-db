@@ -51,3 +51,8 @@ IM04
 - >dcapture-db and dcapture-io changes are updated
 - >H2DatabaseFactory helps to start h2 database for development purpose
 - >SqlTableBuilder removed, builder is added in db project
+
+IM05
+
+- >dcapture-db and dcapture-io changes are updated
+- >SqlMapper removed instead of use SqlParser

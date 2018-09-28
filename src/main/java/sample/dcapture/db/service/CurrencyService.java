@@ -1,8 +1,9 @@
 package sample.dcapture.db.service;
 
 import dcapture.db.core.*;
+import dcapture.db.util.SqlParser;
+import dcapture.db.util.SqlServletResponse;
 import dcapture.io.FormModel;
-import dcapture.io.LocaleException;
 
 import javax.inject.Inject;
 import javax.json.Json;
@@ -10,8 +11,8 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.ws.rs.Path;
+import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 
 @Path("/currency")
@@ -25,22 +26,22 @@ public class CurrencyService {
 
     @Path("/search")
     public JsonObject search(JsonObject req) throws SQLException {
+        SqlParser parser = new SqlParser(database);
         FormModel model = new FormModel(req);
         long start = model.getLongSafe("start");
         int limit = model.getIntSafe("limit");
         limit = 0 < limit ? limit : 20;
-        DataSetQuery dataQuery = database.instance(DataSetQuery.class);
-        dataQuery.selectColumnGroup("currency", "search");
-        SqlCondition condition = database.instance(SqlCondition.class);
-        condition.likeIgnoreCase(model.getStringSafe("searchText"), dataQuery.getColumns("searchText"));
-        dataQuery.where(condition).add(" ORDER BY code, name").limit(limit, start);
-        List<DataSet> dataList = dataQuery.loadAll();
+        SelectQuery dataQuery = database.instance(SelectQuery.class).select("currency");
+        WhereQuery whereQuery = dataQuery.whereQuery().likeColumnSet(
+                model.getStringSafe("searchText"), "currency", "searchText");
+        dataQuery.append(whereQuery).append(" ORDER BY code, name").limit(limit, start);
+        List<DataSet> dataList = dataQuery.getDataSetList();
         //
-        SqlQuery totalQuery = database.instance(SqlQuery.class);
-        totalQuery.add("SELECT COUNT(*) ").add(" FROM ").addTable("currency").where(condition);
+        SelectQuery totalQuery = database.instance(SelectQuery.class);
+        totalQuery.append("SELECT COUNT(*) FROM ").addTable("currency").append(whereQuery);
         Number totalRecords = (Number) totalQuery.getValue();
         JsonObjectBuilder result = Json.createObjectBuilder();
-        result.add("currency", SqlMapper.toJsonArray(database, "currency", dataList));
+        result.add("currency", parser.getArray(dataList, "currency"));
         result.add("start", start);
         result.add("limit", limit);
         result.add("totalRecords", totalRecords.intValue());
@@ -50,35 +51,39 @@ public class CurrencyService {
 
     @Path("/save")
     public JsonArray save(JsonArray req) throws SQLException {
-        List<DataModel> modelList = SqlMapper.toDataModels(database, "currency", req);
-        List<DataSet> dataSets = new ArrayList<>();
-        for (DataModel model : modelList) {
+        SqlParser parser = new SqlParser(database);
+        List<DataSet> modelList = parser.getDataSetList(req, "currency");
+        for (DataSet model : modelList) {
             setStatus(model);
-            String error = SqlMapper.isValid(database, "currency", "required", model);
-            if (error != null) {
-                throw new LocaleException(error);
-            }
-            dataSets.add(model);
+            parser.hasRequiredValue(model, "currency");
         }
         SqlTransaction transaction = database.instance(SqlTransaction.class);
-        transaction.begin().save("currency", "edit", dataSets).commit();
+        transaction.begin().save(modelList, "currency").commit();
         return req;
     }
 
     @Path("/delete")
     public JsonArray delete(JsonArray req) throws SQLException {
-        List<DataSet> dataSets = SqlMapper.toDataSets(database, "currency", req);
+        SqlParser parser = new SqlParser(database);
+        List<DataSet> dataSets = parser.getDataSetList(req, "currency");
         SqlTransaction transaction = database.instance(SqlTransaction.class);
-        transaction.begin().delete("currency", dataSets).commit();
+        transaction.begin().delete(dataSets, "currency").commit();
         return req;
     }
 
-    private void setStatus(DataModel source) {
-        String status = (String) source.getValue("status");
+    @Path("/export/csv")
+    public void exportCsv(SqlServletResponse response) throws SQLException, IOException {
+        SelectQuery query = database.instance(SelectQuery.class);
+        query.select("currency", "code", "name", "symbol", "precision").append(" ORDER BY code, name");
+        response.sendAsCsv("currency", query);
+    }
+
+    private void setStatus(DataSet source) {
+        String status = (String) source.get("status");
         if ("Active".equals(status) || "Inactive".equals(status)) {
-            source.setValue("status", status);
+            source.set("status", status);
         } else {
-            source.setValue("status", "Active");
+            source.set("status", "Active");
         }
     }
 }

@@ -16,11 +16,9 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.LocalDateTime;
 import java.util.UUID;
-import java.util.logging.Logger;
 
 @Path("/session")
 public class SessionService {
-    private static final Logger logger = Logger.getLogger("sample.dcapture.db.service");
     private SqlDatabase database;
     private Localization locale;
     private BaseSettings settings;
@@ -65,26 +63,25 @@ public class SessionService {
     public void authorise1(JsonRequest request, JsonResponse response) throws Exception {
         String email = request.getString("email");
         if (notValid(email)) {
-            response.error(locale.get("email.invalid"));
+            response.error(locale.get("apps_user.email.invalid"));
             return;
         }
-        SqlQuery query = database.instance(SqlQuery.class);
-        query.add("SELECT id FROM ").addTable("apps_user").add(" WHERE email = ?").setParameter(email);
-        Long id = (Long)query.getValue();
-        if (id == null || 1 > id) {
-            response.error(locale.get("email.invalid"));
+        SelectQuery query = database.instance(SelectQuery.class).append("SELECT email FROM ").addTable("apps_user");
+        query.append(" WHERE email = ?").setParameter(email);
+        String oldEmail = query.getString();
+        if (oldEmail == null || !oldEmail.equals(email)) {
+            response.error(locale.get("apps_user.email.invalid"));
             return;
         }
-        SqlQuery deleteQuery = database.instance(SqlQuery.class);
-        deleteQuery.delete("session_batch").add(" WHERE email = ?").setParameter(email).execute();
+        DeleteQuery deleteQuery = database.instance(DeleteQuery.class).delete("session_batch");
+        deleteQuery.append(deleteQuery.whereQuery().equalTo("email", email));
+        deleteQuery.execute();
         String code = UUID.randomUUID().toString();
-        DataModel model = new DataModel();
-        model.setValue("email", email);
-        model.setValue("code", code);
-        model.setValue("created_on", LocalDateTime.now());
-        model.setValue("client", getClientInfo(request));
+        InsertQuery insertQuery = database.instance(InsertQuery.class);
+        insertQuery.insert("session_batch").set("email", email).set("code", code);
+        insertQuery.set("created_on", LocalDateTime.now()).set("client", getClientInfo(request));
         SqlTransaction transaction = database.instance(SqlTransaction.class);
-        transaction.begin().insert("session_batch", "edit", model).commit();
+        transaction.begin().execute(insertQuery).commit();
         response.sendObject(toJsonObject("", "", email, code, false));
     }
 
@@ -100,23 +97,23 @@ public class SessionService {
             response.error(locale.get("userOrPasswordNotValid"));
             return;
         }
-        SqlQuery query = database.instance(SqlQuery.class);
-        query.select("session_batch", "email").add(" WHERE ").add(" code = ?").setParameter(code);
+        SelectQuery query = database.instance(SelectQuery.class);
+        query.select("session_batch", "email").append(" WHERE code = ?").setParameter(code);
         String email = (String) query.getValue();
         if (email == null) {
             response.sendObject(toJsonObject("", "", "", "", false));
             return;
         }
-        DataSetQuery userQuery = database.instance(DataSetQuery.class);
-        userQuery.select("apps_user").add(" WHERE ").add(" email = ?").setParameter(email).limit(1);
-        DataSet appsUser = userQuery.load();
+        SelectQuery userQuery = database.instance(SelectQuery.class);
+        userQuery.select("apps_user").append(" WHERE email = ?").setParameter(email).limit(1);
+        DataSet appsUser = userQuery.getDataSet();
+        System.out.println(appsUser);
         if (appsUser == null || !pass.equals(appsUser.getString("password", ""))) {
             response.error(locale.get("userOrPasswordNotValid"));
             return;
         }
-        SqlQuery deleteQuery = database.instance(SqlQuery.class);
-        deleteQuery.delete("session_batch").add("WHERE email = ?").setParameter(email);
-        deleteQuery.execute();
+        DeleteQuery deleteQuery = database.instance(DeleteQuery.class).delete("session_batch");
+        deleteQuery.append("WHERE email = ?").setParameter(email).execute();
         HttpSession session = request.getSession(true);
         session.setAttribute("session_user", appsUser);
         String userName = appsUser.getString("name", "");

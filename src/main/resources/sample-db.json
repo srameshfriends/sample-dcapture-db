@@ -2,12 +2,16 @@
   {
     "name": "apps_user",
     "group": "master",
-    "primary": true,
-    "uniqueColumns": ["email"],
     "columns": [
       {
+        "name": "id",
+        "type": "long",
+        "primary": true
+      },
+      {
         "name": "email",
-        "type": "string"
+        "type": "string",
+        "unique": true
       },
       {
         "name": "name",
@@ -22,9 +26,9 @@
         "type": "string"
       }
     ],
-    "columnGroups": [
+    "columnSet": [
       {
-        "name": "edit",
+        "name": "insert",
         "columns": [
           "email",
           "name",
@@ -41,7 +45,7 @@
         ]
       },
       {
-        "name": "save",
+        "name": "update",
         "columns": [
           "name"
         ]
@@ -66,12 +70,16 @@
   {
     "name": "session_batch",
     "group": "transaction",
-    "primary": true,
-    "uniqueColumns": ["email"],
     "columns": [
       {
+        "name": "id",
+        "type": "long",
+        "primary": true
+      },
+      {
         "name": "code",
-        "type": "string"
+        "type": "string",
+        "unique": true
       },
       {
         "name": "email",
@@ -86,14 +94,22 @@
         "type": "localdatetime"
       }
     ],
-    "columnGroups": [
+    "columnSet": [
       {
-        "name": "edit",
+        "name": "insert",
         "columns": [
           "code",
           "email",
           "client",
           "created_on"
+        ]
+      },
+      {
+        "name": "update",
+        "columns": [
+          "code",
+          "email",
+          "client"
         ]
       }
     ]
@@ -101,12 +117,16 @@
   {
     "name": "expense_category",
     "group": "master",
-    "primary": true,
-    "uniqueColumns": ["code"],
     "columns": [
       {
+        "name": "id",
+        "type": "long",
+        "primary": true
+      },
+      {
         "name": "code",
-        "type": "string"
+        "type": "string",
+        "unique": true
       },
       {
         "name": "name",
@@ -117,9 +137,17 @@
         "type": "string"
       }
     ],
-    "columnGroups": [
+    "columnSet": [
       {
-        "name": "edit",
+        "name": "insert",
+        "columns": [
+          "code",
+          "name",
+          "status"
+        ]
+      },
+      {
+        "name": "update",
         "columns": [
           "code",
           "name",
@@ -128,14 +156,6 @@
       },
       {
         "name": "required",
-        "columns": [
-          "code",
-          "name",
-          "status"
-        ]
-      },
-      {
-        "name": "search",
         "columns": [
           "code",
           "name",
@@ -154,12 +174,16 @@
   {
     "name": "currency",
     "group": "master",
-    "primary": true,
-    "uniqueColumns": ["code"],
     "columns": [
       {
+        "name": "id",
+        "type": "long",
+        "primary": true
+      },
+      {
         "name": "code",
-        "type": "string"
+        "type": "string",
+        "unique": true
       },
       {
         "name": "name",
@@ -178,9 +202,19 @@
         "type": "string"
       }
     ],
-    "columnGroups": [
+    "columnSet": [
       {
-        "name": "edit",
+        "name": "insert",
+        "columns": [
+          "code",
+          "name",
+          "precision",
+          "symbol",
+          "status"
+        ]
+      },
+      {
+        "name": "update",
         "columns": [
           "code",
           "name",
@@ -199,16 +233,6 @@
         ]
       },
       {
-        "name": "search",
-        "columns": [
-          "code",
-          "name",
-          "symbol",
-          "precision",
-          "status"
-        ]
-      },
-      {
         "name": "searchText",
         "columns": [
           "code",
@@ -220,12 +244,16 @@
   {
     "name": "project",
     "group": "master",
-    "primary": true,
-    "uniqueColumns": ["code"],
     "columns": [
       {
+        "name": "id",
+        "type": "long",
+        "primary": true
+      },
+      {
         "name": "code",
-        "type": "string"
+        "type": "string",
+        "unique": true
       },
       {
         "name": "name",
@@ -236,16 +264,21 @@
         "type": "string"
       }
     ],
-    "columnGroups": [
+    "columnSet": [
       {
-        "name": "edit",
+        "name": "insert",
         "columns": [
           "code",
           "name",
           "status"
-        ],
-        "orderBy": [
-          "code"
+        ]
+      },
+      {
+        "name": "update",
+        "columns": [
+          "code",
+          "name",
+          "status"
         ]
       },
       {
@@ -276,12 +309,16 @@
   {
     "name": "expense",
     "type": "transaction",
-    "primary": true,
-    "uniqueColumns": ["code"],
     "columns": [
       {
+        "name": "id",
+        "type": "long",
+        "primary": true
+      },
+      {
         "name": "code",
-        "type": "string"
+        "type": "string",
+        "unique": true
       },
       {
         "name": "created_by",
@@ -300,13 +337,13 @@
         "name": "expense_category",
         "type": "object",
         "reference": "expense_category",
-        "columnGroup":"required"
+        "columnGroup": "reference"
       },
       {
         "name": "currency",
         "type": "object",
         "reference": "currency",
-        "columnGroup":"required"
+        "columnGroup": "reference"
       },
       {
         "name": "amount",
@@ -317,7 +354,7 @@
         "type": "string"
       }
     ],
-    "columnGroups": [
+    "columnSet": [
       {
         "name": "insert",
         "columns": [
@@ -357,6 +394,7 @@
       {
         "name": "search",
         "columns": [
+          "id",
           "expense_date",
           "code",
           "description",

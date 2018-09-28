@@ -36,7 +36,8 @@
                             <input data-id="currency.status" data-type="text" class="form-control">
                         </div>
                         <div class="form-group">
-                            <button id="actionSave" type="button" class="btn btn-outline-primary" data-locale="actionSave" ></button>
+                            <button id="actionSave" type="button" class="btn btn-outline-primary"
+                                    data-locale="actionSave"></button>
                         </div>
                     </form>
                 </div>
@@ -65,6 +66,16 @@
                 <label id="pagingInfo" class="btn  ml-2">-</label>
                 <div class="btn-group" role="group">
                     <button id="actionDelete" data-locale="actionDelete" class="btn btn-outline-danger"></button>
+                </div>
+                <form id="exportForm" action="api/currency/export/csv" target="_blank">
+                    <button id="actionExport" data-locale="actionExport"
+                            class="btn btn-outline-secondary ml-2"></button>
+                </form>
+                <div class="btn-upload  ml-2">
+                    <label>
+                        <input type="file" multiple>
+                        <span class="btn btn-outline-secondary" data-locale="actionImport"></span>
+                    </label>
                 </div>
             </div>
         </div>
@@ -225,6 +236,9 @@
                 });
             }
         });
+        $( "#actionExport" ).click(function() {
+            $( "#exportForm" ).submit();
+        });
         self.searchDelay = new CallFuture(1200);
         $("#searchText").keyup(function (evt) {
             self.searchDelay.cancelAll();
@@ -248,4 +262,5 @@
     } else {
         PageManager.init(new CurrencyView());
     }
+
 </script>

@@ -14,6 +14,7 @@
         <dcapture>1.0</dcapture>
         <h2>1.4.197</h2>
         <postgresql>42.2.2</postgresql>
+        <commons-csv>1.5</commons-csv>
     </properties>
 
     <dependencies>
@@ -40,6 +41,12 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgresql}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>${commons-csv}</version>
         </dependency>
 
     </dependencies>

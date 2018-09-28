@@ -4,5 +4,5 @@
   "port": 9090,
   "id":"TNMYNE01",
   "name":"Nedungadu Textiles",
-  "database": "sample-db jdbc:postgresql://localhost/sample cG9zdGdyZXM= cG9zdGdyZXM="
+  "database": "sample-db jdbc:h2:tcp://localhost/~/dcapture/tutorial cG9zdGdyZXM= cG9zdGdyZXM="
 }
