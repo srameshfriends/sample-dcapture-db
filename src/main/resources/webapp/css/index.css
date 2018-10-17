@@ -4,7 +4,7 @@ body {
 }
 
 .icon-blue {
-    color: deepskyblue;
+    color: #7B68EE;
     font-size: 1em;
     cursor: pointer;
 }
@@ -63,4 +63,18 @@ body {
 }
 .btn-upload input[type=file] {
     display:none;
+}
+
+.borderless {
+  border: 0;
+}
+
+.borderless-tb {
+  border-top: 0;
+  border-bottom: 0;
+}
+
+.borderless-lr {
+  border-left: 0;
+  border-right: 0;
 }

@@ -89,6 +89,23 @@
             evt.preventDefault();
             PageManager.show("view/currency.html");
         });
+        self.onReload = function (data) {
+            $.ajax({
+                type: "POST",
+                dataType: "json",
+                url: "api/expense/reload",
+                data: JSON.stringify(data),
+                error: function (err) {
+                    MessageDialog.show(err.responseText);
+                },
+                success: function (expense) {
+                    self.form.setValue(expense);
+                    if(0 == expense.id) {
+                        self.form.focus("description");
+                    }
+                }
+            });
+        };
         self.onSave = function (data) {
             $.ajax({
                 type: "POST",
@@ -108,8 +125,7 @@
             self.onSave([self.form.getValue()]);
         });
         self.start = function () {
-            self.form.setValue(SessionDB.getJson("expense"));
-            self.form.focus("description");
+            self.form.setValue(SessionDB.get("expense"));
             $(".manage-max").css("max-width", "600px");
         };
     }

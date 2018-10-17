@@ -13,12 +13,11 @@ Java -version 10
 ### Development vs Production
 
 1. Localization instance load method for production usage.
-2. log4j2.properties replaced using log4j2-production.properties 
-3. mvn package  (Terminal maven command - sources package into target folder)
-4. mvn dependency:copy-dependencies (Terminal maven command helps to copy dependency to target folder)
-5. After dependency copied folder renamed to lib (All dependencies)
-6. Run following command to execute application  
-6.1  java -cp sample-dcapture-db.jar sample.dcapture.db.luncher.Main
+2. mvn package  (Terminal maven command - sources package into target folder)
+3. mvn dependency:copy-dependencies (Terminal maven command helps to copy dependency to target folder)
+4. After dependency copied folder renamed to lib (All dependencies)
+5. Run following command to execute application  
+5.1  java -cp sample-dcapture-db.jar sample.dcapture.db.luncher.Main
  
 ##### July-2018
 
@@ -56,3 +55,12 @@ IM05
 
 - >dcapture-db and dcapture-io changes are updated
 - >SqlMapper removed instead of use SqlParser
+
+##### Oct-2018
+
+IM06
+
+- >dcapture-db and dcapture-io changes are updated
+- >csv-import-view and csv-table util pages are created
+- >log4j2.xml logger configuration file added for HikariCP jdbc connection pool.
+- >Currency view are updated latest changes with export and import

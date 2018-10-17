@@ -32,7 +32,8 @@ public class SessionService {
 
     @Path("/validate")
     public JsonObject validate(JsonRequest request) {
-        if (request.getSession(false) == null) {
+        if (request.getSession(false) == null ||
+                request.getSession(false).getAttribute("apps_user") == null) {
             return toJsonObject("", "", "", "", false);
         }
         DataSet appsUser = (DataSet) request.getSession(false).getAttribute("apps_user");
@@ -66,21 +67,21 @@ public class SessionService {
             response.error(locale.get("apps_user.email.invalid"));
             return;
         }
-        SelectQuery query = database.instance(SelectQuery.class).append("SELECT email FROM ").addTable("apps_user");
+        SelectQuery query = database.getSelectQuery().append("SELECT email FROM ").addTable("apps_user");
         query.append(" WHERE email = ?").setParameter(email);
         String oldEmail = query.getString();
         if (oldEmail == null || !oldEmail.equals(email)) {
             response.error(locale.get("apps_user.email.invalid"));
             return;
         }
-        DeleteQuery deleteQuery = database.instance(DeleteQuery.class).delete("session_batch");
+        DeleteQuery deleteQuery = database.getDeleteQuery().delete("session_batch");
         deleteQuery.append(deleteQuery.whereQuery().equalTo("email", email));
         deleteQuery.execute();
         String code = UUID.randomUUID().toString();
-        InsertQuery insertQuery = database.instance(InsertQuery.class);
+        InsertQuery insertQuery = database.getInsertQuery();
         insertQuery.insert("session_batch").set("email", email).set("code", code);
         insertQuery.set("created_on", LocalDateTime.now()).set("client", getClientInfo(request));
-        SqlTransaction transaction = database.instance(SqlTransaction.class);
+        SqlTransaction transaction = database.getTransaction();
         transaction.begin().execute(insertQuery).commit();
         response.sendObject(toJsonObject("", "", email, code, false));
     }
@@ -97,22 +98,21 @@ public class SessionService {
             response.error(locale.get("userOrPasswordNotValid"));
             return;
         }
-        SelectQuery query = database.instance(SelectQuery.class);
+        SelectQuery query = database.getSelectQuery();
         query.select("session_batch", "email").append(" WHERE code = ?").setParameter(code);
         String email = (String) query.getValue();
         if (email == null) {
             response.sendObject(toJsonObject("", "", "", "", false));
             return;
         }
-        SelectQuery userQuery = database.instance(SelectQuery.class);
+        SelectQuery userQuery = database.getSelectQuery();
         userQuery.select("apps_user").append(" WHERE email = ?").setParameter(email).limit(1);
         DataSet appsUser = userQuery.getDataSet();
-        System.out.println(appsUser);
         if (appsUser == null || !pass.equals(appsUser.getString("password", ""))) {
             response.error(locale.get("userOrPasswordNotValid"));
             return;
         }
-        DeleteQuery deleteQuery = database.instance(DeleteQuery.class).delete("session_batch");
+        DeleteQuery deleteQuery = database.getDeleteQuery().delete("session_batch");
         deleteQuery.append("WHERE email = ?").setParameter(email).execute();
         HttpSession session = request.getSession(true);
         session.setAttribute("session_user", appsUser);

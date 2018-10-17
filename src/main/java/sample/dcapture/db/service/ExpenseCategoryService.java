@@ -29,13 +29,13 @@ public class ExpenseCategoryService {
         long start = model.getLongSafe("start");
         int limit = model.getIntSafe("limit");
         limit = 0 < limit ? limit : 20;
-        SelectQuery dataQuery = database.instance(SelectQuery.class).select("expense_category");
+        SelectQuery dataQuery = database.getSelectQuery().select("expense_category");
         WhereQuery whereQuery = dataQuery.whereQuery();
         whereQuery.likeColumnSet(model.getStringSafe("searchText"), "expense_category", "searchText");
         dataQuery.append(whereQuery).append(" ORDER BY code, name").limit(limit, start);
         List<DataSet> dataList = dataQuery.getDataSetList();
         //
-        SelectQuery totalQuery = database.instance(SelectQuery.class);
+        SelectQuery totalQuery = database.getSelectQuery();
         totalQuery.append("SELECT COUNT(*) FROM ").addTable("expense_category").append(whereQuery);
         int totalRecords = totalQuery.getInt();
         JsonObjectBuilder result = Json.createObjectBuilder();
@@ -55,7 +55,7 @@ public class ExpenseCategoryService {
             setStatus(category);
             parser.hasRequiredValue(category, "expense_category");
         }
-        SqlTransaction transaction = database.instance(SqlTransaction.class);
+        SqlTransaction transaction = database.getTransaction();
         transaction.begin().save(categoryList, "expense_category").commit();
         return req;
     }
@@ -64,7 +64,7 @@ public class ExpenseCategoryService {
     public JsonArray delete(JsonArray req) throws SQLException {
         SqlParser parser = new SqlParser(database);
         List<DataSet> dataSets = parser.getDataSetList(req, "expense_category");
-        SqlTransaction transaction = database.instance(SqlTransaction.class);
+        SqlTransaction transaction = database.getTransaction();
         transaction.begin().delete(dataSets, "expense_category").commit();
         return req;
     }

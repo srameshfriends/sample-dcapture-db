@@ -29,7 +29,7 @@
 </div>
 <script>
     function SignUpView2() {
-        let self = this, user = SessionDB.getJson("new_user_account");
+        let self = this, user = SessionDB.get("new_user_account");
         self.getId = function () {
             return "signup1";
         };

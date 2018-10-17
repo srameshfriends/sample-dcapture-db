@@ -29,13 +29,13 @@ public class ProjectService {
         long start = model.getLongSafe("start");
         int limit = model.getIntSafe("limit");
         limit = 0 < limit ? limit : 20;
-        SelectQuery dataQuery = database.instance(SelectQuery.class).selectColumnSet("project", "search");
+        SelectQuery dataQuery = database.getSelectQuery().selectColumnSet("project", "search");
         WhereQuery whereQuery = dataQuery.whereQuery();
         whereQuery.likeColumnSet(model.getStringSafe("searchText"), "project", "searchText");
         dataQuery.append(whereQuery).append(" ORDER BY code, name").limit(limit, start);
         List<DataSet> dataList = dataQuery.getDataSetList();
         //
-        SelectQuery totalQuery = database.instance(SelectQuery.class);
+        SelectQuery totalQuery = database.getSelectQuery();
         totalQuery.append("SELECT COUNT(*) FROM ").addTable("project").append(whereQuery);
         int totalRecords = totalQuery.getInt();
         JsonObjectBuilder result = Json.createObjectBuilder();
@@ -55,7 +55,7 @@ public class ProjectService {
             setStatus(model);
             parser.hasRequiredValue(model, "project", "required");
         }
-        SqlTransaction transaction = database.instance(SqlTransaction.class);
+        SqlTransaction transaction = database.getTransaction();
         transaction.begin().save(modelList, "project").commit();
         return req;
     }
@@ -64,7 +64,7 @@ public class ProjectService {
     public JsonArray delete(JsonArray req) throws SQLException {
         SqlParser parser = new SqlParser(database);
         List<DataSet> dataSets = parser.getDataSetList(req, "project");
-        SqlTransaction transaction = database.instance(SqlTransaction.class);
+        SqlTransaction transaction = database.getTransaction();
         transaction.begin().delete(dataSets, "project").commit();
         return req;
     }

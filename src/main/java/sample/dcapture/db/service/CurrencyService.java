@@ -2,8 +2,11 @@ package sample.dcapture.db.service;
 
 import dcapture.db.core.*;
 import dcapture.db.util.SqlParser;
+import dcapture.db.util.SqlServletRequest;
 import dcapture.db.util.SqlServletResponse;
 import dcapture.io.FormModel;
+import dcapture.io.HtmlResponse;
+import dcapture.io.Localization;
 
 import javax.inject.Inject;
 import javax.json.Json;
@@ -18,10 +21,12 @@ import java.util.List;
 @Path("/currency")
 public class CurrencyService {
     private SqlDatabase database;
+    private Localization localization;
 
     @Inject
-    public CurrencyService(SqlDatabase database) {
+    public CurrencyService(SqlDatabase database, Localization localization) {
         this.database = database;
+        this.localization = localization;
     }
 
     @Path("/search")
@@ -31,13 +36,13 @@ public class CurrencyService {
         long start = model.getLongSafe("start");
         int limit = model.getIntSafe("limit");
         limit = 0 < limit ? limit : 20;
-        SelectQuery dataQuery = database.instance(SelectQuery.class).select("currency");
+        SelectQuery dataQuery = database.getSelectQuery().select("currency");
         WhereQuery whereQuery = dataQuery.whereQuery().likeColumnSet(
                 model.getStringSafe("searchText"), "currency", "searchText");
         dataQuery.append(whereQuery).append(" ORDER BY code, name").limit(limit, start);
         List<DataSet> dataList = dataQuery.getDataSetList();
         //
-        SelectQuery totalQuery = database.instance(SelectQuery.class);
+        SelectQuery totalQuery = database.getSelectQuery();
         totalQuery.append("SELECT COUNT(*) FROM ").addTable("currency").append(whereQuery);
         Number totalRecords = (Number) totalQuery.getValue();
         JsonObjectBuilder result = Json.createObjectBuilder();
@@ -57,7 +62,7 @@ public class CurrencyService {
             setStatus(model);
             parser.hasRequiredValue(model, "currency");
         }
-        SqlTransaction transaction = database.instance(SqlTransaction.class);
+        SqlTransaction transaction = database.getTransaction();
         transaction.begin().save(modelList, "currency").commit();
         return req;
     }
@@ -66,16 +71,29 @@ public class CurrencyService {
     public JsonArray delete(JsonArray req) throws SQLException {
         SqlParser parser = new SqlParser(database);
         List<DataSet> dataSets = parser.getDataSetList(req, "currency");
-        SqlTransaction transaction = database.instance(SqlTransaction.class);
+        SqlTransaction transaction = database.getTransaction();
         transaction.begin().delete(dataSets, "currency").commit();
         return req;
     }
 
+    @Path("/import/csv")
+    public void importCsv(SqlServletRequest request, HtmlResponse response) throws SQLException, IOException {
+        SqlParser parser = new SqlParser(database);
+        List<DataSet> modelList = request.getDataSetsFromCsv(database, "currency");
+        for (DataSet model : modelList) {
+            setStatus(model);
+            parser.hasRequiredValue(model, "currency");
+        }
+        SqlTransaction transaction = database.getTransaction();
+        transaction.begin().insert(modelList, "currency").commit();
+        response.success(localization.getMessage("recordsImported.msg", modelList.size()));
+    }
+
     @Path("/export/csv")
     public void exportCsv(SqlServletResponse response) throws SQLException, IOException {
-        SelectQuery query = database.instance(SelectQuery.class);
+        SelectQuery query = database.getSelectQuery();
         query.select("currency", "code", "name", "symbol", "precision").append(" ORDER BY code, name");
-        response.sendAsCsv("currency", query);
+        response.sendAttachment("text/csv", "currency", query);
     }
 
     private void setStatus(DataSet source) {

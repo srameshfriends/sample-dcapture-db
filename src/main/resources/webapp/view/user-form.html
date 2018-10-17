@@ -63,7 +63,7 @@
             PageManager.showPrevious();
         });
         self.start = function () {
-            self.form.setValue(SessionDB.getJson("apps_user"));
+            self.form.setValue(SessionDB.get("apps_user"));
         };
     }
     if(typeof PageManager === "undefined") {

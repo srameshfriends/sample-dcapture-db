@@ -67,6 +67,10 @@ SessionDB.set = function (name, value) {
 };
 SessionDB.get = function (name) {
     if (sessionStorage) {
+        try {
+            return JSON.parse(sessionStorage.getItem(name));
+        } catch (ex) {
+        }
         return sessionStorage.getItem(name);
     }
     return false;
@@ -75,14 +79,6 @@ SessionDB.remove = function (name) {
     if (sessionStorage) {
         sessionStorage.removeItem(name);
     }
-};
-SessionDB.getJson = function (name) {
-    try {
-        let cfg = SessionDB.get(name);
-        return JSON.parse(cfg);
-    } catch (ex) {
-    }
-    return false;
 };
 SessionDB.getLocale = function (name) {
     let txt, data = SessionDB.getValue("locale");
@@ -158,6 +154,12 @@ SessionDB.loadLocale = function (url, callback) {
         });
     }
 };
+SessionDB.setLocale = function (name, value) {
+    if (typeof SessionDB.getValue("locale") !== "object") {
+        SessionDB.setValue("locale", {});
+    }
+    SessionDB.getValue("locale")[name] = value;
+};
 SessionDB.loadHtml = function (url, callback) {
     if (typeof SessionDB.getValue("html") === "undefined") {
         SessionDB.setValue("html", new Map());
@@ -229,6 +231,7 @@ CallFuture.prototype.cancelAll = function () {
 
 function UndoDialog() {
 }
+
 UndoDialog.show = function (msg, actionId, listener) {
     UndoDialog.undoDelay = 0;
     $("#undoDialog-btn").on("click", function (evt) {
@@ -290,3 +293,132 @@ MessageDialog.hide = function () {
     $("#messageDialog-close").off('click');
     $("#messageDialog").hide();
 };
+
+function Paging(name, limit) {
+    let self = this;
+    self.name = "";
+    self.limit = 10;
+    self.start = 0;
+    self.length = 0;
+    self.totalRecords = 0;
+    self.isPrevious = false;
+    self.isNext = false;
+    self.sortOrder = "";
+    self.listener = false;
+    if (typeof limit === "string") {
+        self.name = name;
+    }
+    if (typeof limit === "number") {
+        if (0 === limit) {
+            limit = 10;
+        } else if (500 < limit) {
+            limit = 500;
+        }
+        self.limit = limit;
+    }
+    self.build = function (previousNode, nextNode, infoNode) {
+        self.previous = previousNode;
+        self.next = nextNode;
+        self.info = infoNode;
+    };
+    self.set = function (obj) {
+        if (typeof obj !== "object") {
+            obj = {};
+        }
+        if (typeof obj.start !== "number") {
+            obj.start = 0;
+        }
+        if (typeof obj.length !== "number") {
+            obj.length = 0;
+        }
+        if (typeof obj.totalRecords !== "number") {
+            obj.totalRecords = 0;
+        }
+        self.start = obj.start;
+        self.totalRecords = obj.totalRecords;
+        self.length = obj.length;
+        let startIdx = obj.start + 1, endIdx = obj.start + obj.length, currentCount;
+        self.isPrevious = true;
+        self.isNext = true;
+        if (0 === obj.length && 0 === obj.totalRecords) {
+            if (typeof self.info !== "boolean") {
+                self.info.text(" - ");
+            }
+        } else {
+            if (typeof self.info !== "boolean") {
+                if (0 === obj.length) {
+                    if (0 === obj.totalRecords) {
+                        self.info.text(" - ");
+                    } else {
+                        self.info.text("0 of " + obj.totalRecords);
+                    }
+                } else {
+                    self.info.text(startIdx + " - " + endIdx + " of " + obj.totalRecords);
+                }
+            }
+        }
+        if (0 === obj.start) {
+            self.isPrevious = false;
+        }
+        currentCount = obj.start + obj.length;
+        if (obj.totalRecords <= currentCount) {
+            self.isNext = false;
+        }
+        if (typeof self.previous === "object") {
+            if (self.isPrevious) {
+                self.previous.parent().removeClass("disabled");
+            } else {
+                self.previous.parent().addClass("disabled");
+            }
+        }
+        if (typeof self.next === "object") {
+            if (self.isNext) {
+                self.next.parent().removeClass("disabled");
+            } else {
+                self.next.parent().addClass("disabled");
+            }
+        }
+        return {name: self.name, start: self.start, limit: self.limit, searchText : ""};
+    };
+    self.clear = function () {
+        return self.set({});
+    };
+    self.get = function () {
+        return {name: self.name, start: self.start, limit: self.limit, searchText : ""};
+    };
+    self.getNext = function () {
+        let obj = {};
+        obj.name = self.name;
+        obj.start = self.start + self.limit;
+        obj.limit = self.limit;
+        return obj;
+    };
+    self.getPrevious = function () {
+        let obj = {};
+        obj.name = self.name;
+        obj.start = self.start - self.limit;
+        obj.start = 0 > obj.start ? 0 : obj.start;
+        obj.limit = self.limit;
+        return obj;
+    };
+    self.onNext = function (callback) {
+        if (typeof self.next === "object") {
+            self.next.on("click", function (evt) {
+                evt.preventDefault();
+                if (self.isNext && (typeof callback === "function")) {
+                    callback(self.getNext());
+                }
+            });
+        }
+    };
+    self.onPrevious = function (callback) {
+        if (typeof self.previous === "object") {
+            self.previous.on("click", function (evt) {
+                evt.preventDefault();
+                if (self.isPrevious && (typeof callback === "function")) {
+                    callback(self.getPrevious());
+                }
+            });
+        }
+    };
+}

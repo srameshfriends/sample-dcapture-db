@@ -5,7 +5,7 @@ PageManager.getOpenViews = function () {
     return ["view/signin1.html", "view/signin2.html", "view/signup1.html", "view/signup2.html"];
 };
 PageManager.hasSession = function () {
-    let cfg = SessionDB.getJson("aduetthaecnittinceahtteuda");
+    let cfg = SessionDB.get("aduetthaecnittinceahtteuda");
     if (typeof cfg === "object" && typeof cfg["authenticated"] === "boolean" || cfg["authenticated"] === true) {
         if (typeof cfg["sessionId"] === "string" && 8 < cfg["sessionId"].length) {
             return true;
