@@ -1,0 +1,121 @@
+[
+  {
+    "name": "key_sequence",
+    "group": "master",
+    "columns": [
+      {
+        "name": "id",
+        "type": "long",
+        "primary": true
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "length": 64,
+        "unique": true
+      },
+      {
+        "name": "type",
+        "type": "string",
+        "length": 16
+      },
+      {
+        "name": "prefix",
+        "type": "string",
+        "length": 8
+      }
+    ],
+    "columnSet": [
+      {
+        "name": "insert",
+        "columns": [
+          "name",
+          "type",
+          "prefix"
+        ]
+      },
+      {
+        "name": "update",
+        "columns": [
+          "name",
+          "type",
+          "prefix"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "key_sequence_line",
+    "group": "master",
+    "columns": [
+      {
+        "name": "id",
+        "type": "long",
+        "primary": true
+      },
+      {
+        "name": "key_sequence",
+        "type": "object",
+        "reference": "key_sequence",
+        "notNull": true
+      },
+      {
+        "name": "prefix",
+        "type": "string",
+        "length": 8
+      },
+      {
+        "name": "pattern",
+        "type": "string",
+        "length": 16
+      },
+      {
+        "name": "year",
+        "type": "integer"
+      },
+      {
+        "name": "month",
+        "type": "integer"
+      },
+      {
+        "name": "day",
+        "type": "integer"
+      },
+      {
+        "name": "last_index",
+        "type": "integer"
+      },
+      {
+        "name": "last_key",
+        "type": "string",
+        "length": 64
+      }
+    ],
+    "columnSet": [
+      {
+        "name": "insert",
+        "columns": [
+          "prefix",
+          "pattern",
+          "year",
+          "month",
+          "day",
+          "last_index",
+          "last_key"
+        ]
+      },
+      {
+        "name": "update",
+        "columns": [
+          "prefix",
+          "pattern",
+          "year",
+          "month",
+          "day",
+          "last_index",
+          "last_key"
+        ]
+      }
+    ]
+  }
+]

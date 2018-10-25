@@ -64,3 +64,10 @@ IM06
 - >csv-import-view and csv-table util pages are created
 - >log4j2.xml logger configuration file added for HikariCP jdbc connection pool.
 - >Currency view are updated latest changes with export and import
+
+IM07
+
+- >@Path annotation replaced by @HttpPath 
+- >@HttpMethod annotation are used
+- >system-db and key sequence are added
+- >dcapture-db and dcapture-io changes are updated

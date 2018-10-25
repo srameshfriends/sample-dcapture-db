@@ -3,17 +3,17 @@ package sample.dcapture.db.service;
 import dcapture.db.core.*;
 import dcapture.db.util.SqlParser;
 import dcapture.io.FormModel;
+import dcapture.io.HttpPath;
 
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.ws.rs.Path;
 import java.sql.SQLException;
 import java.util.List;
 
-@Path("/project")
+@HttpPath("/project")
 public class ProjectService {
     private SqlDatabase database;
 
@@ -22,7 +22,7 @@ public class ProjectService {
         this.database = database;
     }
 
-    @Path("/search")
+    @HttpPath("/search")
     public JsonObject search(JsonObject req) throws SQLException {
         SqlParser parser = new SqlParser(database);
         FormModel model = new FormModel(req);
@@ -47,7 +47,7 @@ public class ProjectService {
         return result.build();
     }
 
-    @Path("/save")
+    @HttpPath("/save")
     public JsonArray save(JsonArray req) throws SQLException {
         SqlParser parser = new SqlParser(database);
         List<DataSet> modelList = parser.getDataSetList(req, "project");
@@ -55,17 +55,15 @@ public class ProjectService {
             setStatus(model);
             parser.hasRequiredValue(model, "project", "required");
         }
-        SqlTransaction transaction = database.getTransaction();
-        transaction.begin().save(modelList, "project").commit();
+        database.getTransaction().save(modelList, "project").commit();
         return req;
     }
 
-    @Path("/delete")
+    @HttpPath("/delete")
     public JsonArray delete(JsonArray req) throws SQLException {
         SqlParser parser = new SqlParser(database);
         List<DataSet> dataSets = parser.getDataSetList(req, "project");
-        SqlTransaction transaction = database.getTransaction();
-        transaction.begin().delete(dataSets, "project").commit();
+        database.getTransaction().delete(dataSets, "project").commit();
         return req;
     }
 

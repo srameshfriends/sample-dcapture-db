@@ -100,7 +100,7 @@
                 },
                 success: function (expense) {
                     self.form.setValue(expense);
-                    if(0 == expense.id) {
+                    if(0 === expense.id) {
                         self.form.focus("description");
                     }
                 }
@@ -108,7 +108,7 @@
         };
         self.onSave = function (data) {
             $.ajax({
-                type: "POST",
+                type: "PUT",
                 dataType: "json",
                 url: "api/expense/save",
                 data: JSON.stringify(data),
@@ -116,7 +116,6 @@
                     MessageDialog.show(err.responseText);
                 },
                 success: function () {
-                    PageManager.show("view/expense-list.html");
                 }
             });
         };

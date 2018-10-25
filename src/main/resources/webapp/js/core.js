@@ -193,6 +193,14 @@ SessionDB.setParameter = function (parameter) {
         window.history.pushState({path: url}, '', url);
     }
 };
+SessionDB.clear = function () {
+    if (typeof window.dcaptureMemory !== "undefined") {
+        window.dcaptureMemory = new Map();
+    }
+    if (sessionStorage) {
+        sessionStorage.clear();
+    }
+};
 
 function CallFuture(delay) {
     if (typeof delay !== "number") {
@@ -205,6 +213,7 @@ function CallFuture(delay) {
 }
 
 CallFuture.prototype.call = function (listener) {
+    this.cancelAll();
     const delayId = setInterval(function () {
         clearInterval(delayId);
         if (typeof listener === "function") {
@@ -283,7 +292,7 @@ MessageDialog.show = function (msg) {
     $("#messageDialog-msg").text(msg);
     MessageDialog.delay = setInterval(function () {
         MessageDialog.hide();
-    }, 4000);
+    }, 8000);
 };
 MessageDialog.showLocale = function (msgId) {
     MessageDialog.show(SessionDB.getLocale(msgId));
@@ -380,10 +389,10 @@ function Paging(name, limit) {
         }
         return {name: self.name, start: self.start, limit: self.limit, searchText : ""};
     };
-    self.clear = function () {
-        return self.set({});
-    };
-    self.get = function () {
+    self.get = function (reset) {
+        if(reset === true) {
+            self.set({});
+        }
         return {name: self.name, start: self.start, limit: self.limit, searchText : ""};
     };
     self.getNext = function () {

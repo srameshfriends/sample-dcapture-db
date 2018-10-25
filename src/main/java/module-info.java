@@ -1,11 +1,8 @@
 module sample.dcapture.db {
     requires dcapture.db;
     requires dcapture.io;
-    requires com.zaxxer.hikari;
-    requires log4j.slf4j.impl;
-    requires org.apache.logging.log4j;
+    requires commons.pool2;
     requires java.json;
-    requires java.ws.rs;
     requires java.sql;
     requires javax.servlet.api;
     requires javax.inject;

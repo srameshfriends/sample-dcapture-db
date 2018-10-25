@@ -2,22 +2,19 @@ package sample.dcapture.db.service;
 
 import dcapture.db.core.*;
 import dcapture.db.util.SqlParser;
-import dcapture.io.FormModel;
-import dcapture.io.JsonRequest;
-import dcapture.io.Localization;
+import dcapture.io.*;
 
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.ws.rs.Path;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-@Path("/user")
+@HttpPath(value = "/user", secured = false)
 public class AppsUserService {
     private static final String EMAIL_REGEX = "^[\\w-+]+(\\.[\\w]+)*@[\\w-]+(\\.[\\w]+)*(\\.[a-z]{2,})$";
     private SqlDatabase database;
@@ -29,7 +26,8 @@ public class AppsUserService {
         this.database = database;
     }
 
-    @Path("/search")
+    @HttpPath("/search")
+    @HttpMethod("POST")
     public JsonObject search(JsonObject req) throws Exception {
         FormModel model = new FormModel(req);
         final long start = model.getLongSafe("start");
@@ -54,7 +52,8 @@ public class AppsUserService {
         return builder.build();
     }
 
-    @Path("/create1")
+    @HttpPath(value = "/create1", secured = false)
+    @HttpMethod("POST")
     public JsonObject create1(JsonRequest request) throws Exception {
         String name = request.getString("name");
         String email = request.getString("email");
@@ -73,14 +72,14 @@ public class AppsUserService {
         if (appsUser == null) {
             appsUser = new DataSet().set("email", email).set("name", name).set("password", code);
             appsUser.set("status", "Pending");
-            SqlTransaction transaction = database.getTransaction();
-            transaction.begin().insert(appsUser, "apps_user").commit();
+            database.getTransaction().insert(appsUser, "apps_user").commit();
         }
         result.add("code", code);
         return result.build();
     }
 
-    @Path("/create2")
+    @HttpPath(value = "/create2", secured = false)
+    @HttpMethod("POST")
     public JsonObject create2(JsonRequest request) throws Exception {
         String code = request.getString("code");
         String value = request.getString("value");
@@ -97,34 +96,33 @@ public class AppsUserService {
             throw new NullPointerException(locale.get("actionPrevious"));
         }
         appsUser.unlock().set("password", value).set("status", "Active");
-        SqlTransaction transaction = database.getTransaction();
-        transaction.begin().update(appsUser, "apps_user", "required").commit();
+        database.getTransaction().update(appsUser, "apps_user", "required").commit();
         JsonObjectBuilder result = Json.createObjectBuilder();
         result.add("user", appsUser.getString("name", ""));
         result.add("email", appsUser.getString("email", ""));
         return result.build();
     }
 
-    @Path("/save")
-    public JsonArray save(JsonArray req) throws SQLException {
+    @HttpPath("/save")
+    @HttpMethod("PUT")
+    public void save(JsonArray req, JsonResponse response) throws SQLException {
         SqlParser parser = new SqlParser(database);
         List<DataSet> appsUserList = parser.getDataSetList(req, "apps_user");
         for (DataSet appsUser : appsUserList) {
             setStatus(appsUser);
             parser.hasRequiredValue(appsUser, "apps_user", "save");
         }
-        SqlTransaction transaction = database.getTransaction();
-        transaction.begin().update(appsUserList, "apps_user", "save").commit();
-        return req;
+        database.getTransaction().update(appsUserList, "apps_user", "save").commit();
+        response.success(locale.getMessage("actionSave.msg", appsUserList.size()));
     }
 
-    @Path("/delete")
-    public JsonArray delete(JsonArray req) throws SQLException {
+    @HttpPath("/delete")
+    @HttpMethod("DELETE")
+    public void delete(JsonArray req, JsonResponse response) throws SQLException {
         SqlParser parser = new SqlParser(database);
-        List<DataSet> entityList = parser.getDataSetList(req, "apps_user");
-        SqlTransaction transaction = database.getTransaction();
-        transaction.begin().delete(entityList, "apps_user").commit();
-        return req;
+        List<DataSet> userList = parser.getDataSetList(req, "apps_user");
+        database.getTransaction().delete(userList, "apps_user").commit();
+        response.success(locale.getMessage("actionDelete.msg", userList.size()));
     }
 
     private void setStatus(DataSet source) {

@@ -2,27 +2,29 @@ package sample.dcapture.db.service;
 
 import dcapture.db.core.*;
 import dcapture.db.util.SqlParser;
-import dcapture.io.FormModel;
+import dcapture.io.*;
 
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.ws.rs.Path;
 import java.sql.SQLException;
 import java.util.List;
 
-@Path("/expense_category")
+@HttpPath("/expense_category")
 public class ExpenseCategoryService {
     private SqlDatabase database;
+    private Localization localization;
 
     @Inject
-    public ExpenseCategoryService(SqlDatabase database) {
+    public ExpenseCategoryService(SqlDatabase database, Localization localization) {
         this.database = database;
+        this.localization = localization;
     }
 
-    @Path("/search")
+    @HttpPath("/search")
+    @HttpMethod("POST")
     public JsonObject search(JsonObject req) throws SQLException {
         SqlParser parser = new SqlParser(database);
         FormModel model = new FormModel(req);
@@ -47,26 +49,26 @@ public class ExpenseCategoryService {
         return result.build();
     }
 
-    @Path("/save")
-    public JsonArray save(JsonArray req) throws SQLException {
+    @HttpPath("/save")
+    @HttpMethod("PUT")
+    public void save(JsonArray req, JsonResponse response) throws SQLException {
         SqlParser parser = new SqlParser(database);
         List<DataSet> categoryList = parser.getDataSetList(req, "expense_category");
         for (DataSet category : categoryList) {
             setStatus(category);
             parser.hasRequiredValue(category, "expense_category");
         }
-        SqlTransaction transaction = database.getTransaction();
-        transaction.begin().save(categoryList, "expense_category").commit();
-        return req;
+        database.getTransaction().save(categoryList, "expense_category").commit();
+        response.success(localization.getMessage("actionSave.msg", categoryList.size()));
     }
 
-    @Path("/delete")
-    public JsonArray delete(JsonArray req) throws SQLException {
+    @HttpPath("/delete")
+    @HttpMethod("DELETE")
+    public void delete(JsonArray req, JsonResponse response) throws SQLException {
         SqlParser parser = new SqlParser(database);
         List<DataSet> dataSets = parser.getDataSetList(req, "expense_category");
-        SqlTransaction transaction = database.getTransaction();
-        transaction.begin().delete(dataSets, "expense_category").commit();
-        return req;
+        database.getTransaction().delete(dataSets, "expense_category").commit();
+        response.success(localization.getMessage("actionDelete.msg", dataSets.size()));
     }
 
     private void setStatus(DataSet source) {

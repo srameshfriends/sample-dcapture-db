@@ -29,7 +29,7 @@ PageManager.setSession = function (cfg) {
     $("#appsUserId").text(cfg["email"]);
     signOutBtn.on("click", function (evt) {
         evt.preventDefault();
-        PageManager.end();
+        PageManager.clearSession();
     });
     return true;
 };
@@ -58,7 +58,7 @@ PageManager.start = function () {
     });
     signOutBtn.on("click", function (evt) {
         evt.preventDefault();
-        PageManager.end();
+        PageManager.clearSession();
     });
     $("#menuItemExpense").on("click", function (evt) {
         evt.preventDefault();
@@ -81,20 +81,21 @@ PageManager.start = function () {
         PageManager.show("view/user-list.html");
     });
 };
-PageManager.end = function () {
-    SessionDB.remove("aduetthaecnittinceahtteuda");
+PageManager.clearSession = function () {
     $("#appsNavigation").hide();
     $.ajax({
-        type: "POST",
+        type: "PUT",
         dataType: "json",
-        url: "api/session/end",
+        url: "api/session/clear",
         data: "{}",
-        error: function () {
-            MessageDialog.show("Error : Service or network failure, Please try again!");
+        error: function (msg) {
+            MessageDialog.show(msg.responseText);
+            SessionDB.clear();
+            location.reload();
         },
-        success: function (cfg) {
-            PageManager.setSession(cfg);
-            PageManager.show("view/signin1.html");
+        success: function () {
+            SessionDB.clear();
+            location.reload();
         }
     });
 };

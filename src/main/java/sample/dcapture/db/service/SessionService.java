@@ -1,23 +1,19 @@
 package sample.dcapture.db.service;
 
 import dcapture.db.core.*;
-import dcapture.io.BaseSettings;
-import dcapture.io.JsonRequest;
-import dcapture.io.JsonResponse;
-import dcapture.io.Localization;
+import dcapture.io.*;
 
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.servlet.http.HttpSession;
-import javax.ws.rs.Path;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Path("/session")
+@HttpPath(value = "/session", secured = false)
 public class SessionService {
     private SqlDatabase database;
     private Localization locale;
@@ -30,7 +26,8 @@ public class SessionService {
         this.settings = settings;
     }
 
-    @Path("/validate")
+    @HttpPath(value = "/validate", secured = false)
+    @HttpMethod("POST")
     public JsonObject validate(JsonRequest request) {
         if (request.getSession(false) == null ||
                 request.getSession(false).getAttribute("apps_user") == null) {
@@ -43,16 +40,18 @@ public class SessionService {
         return toJsonObject(id, name, email, "", true);
     }
 
-    @Path("/end")
-    public JsonObject end(JsonRequest request) {
+    @HttpPath(value = "/clear", secured = false)
+    @HttpMethod("PUT")
+    public void clearSession(JsonRequest request, JsonResponse response) {
         HttpSession session = request.getSession(false);
         if (session != null) {
             session.invalidate();
         }
-        return toJsonObject("", "", "", "", false);
+        response.success(locale.get("clearSession.msg"));
     }
 
-    @Path("/reset")
+    @HttpPath(value = "/reset", secured = false)
+    @HttpMethod("POST")
     public JsonObject validate(JsonObject request) {
         JsonObjectBuilder builder = Json.createObjectBuilder();
         builder.add("status", "success");
@@ -60,7 +59,8 @@ public class SessionService {
         return builder.build();
     }
 
-    @Path("/authorise1")
+    @HttpPath(value = "/authorise1", secured = false)
+    @HttpMethod("POST")
     public void authorise1(JsonRequest request, JsonResponse response) throws Exception {
         String email = request.getString("email");
         if (notValid(email)) {
@@ -74,19 +74,20 @@ public class SessionService {
             response.error(locale.get("apps_user.email.invalid"));
             return;
         }
+        SqlTransaction transaction = database.getTransaction();
         DeleteQuery deleteQuery = database.getDeleteQuery().delete("session_batch");
         deleteQuery.append(deleteQuery.whereQuery().equalTo("email", email));
-        deleteQuery.execute();
+        transaction.executeUpdate(deleteQuery);
         String code = UUID.randomUUID().toString();
         InsertQuery insertQuery = database.getInsertQuery();
         insertQuery.insert("session_batch").set("email", email).set("code", code);
         insertQuery.set("created_on", LocalDateTime.now()).set("client", getClientInfo(request));
-        SqlTransaction transaction = database.getTransaction();
-        transaction.begin().execute(insertQuery).commit();
+        transaction.executeUpdate(insertQuery).commit();
         response.sendObject(toJsonObject("", "", email, code, false));
     }
 
-    @Path("/authorise2")
+    @HttpPath(value = "/authorise2", secured = false)
+    @HttpMethod("POST")
     public void authorise2(JsonRequest request, JsonResponse response) throws Exception {
         String code = request.getString("code", "");
         String pass = request.getString("pass", "");
@@ -113,7 +114,8 @@ public class SessionService {
             return;
         }
         DeleteQuery deleteQuery = database.getDeleteQuery().delete("session_batch");
-        deleteQuery.append("WHERE email = ?").setParameter(email).execute();
+        deleteQuery.append("WHERE email = ?").setParameter(email);
+        database.getTransaction().executeUpdate(deleteQuery).commit();
         HttpSession session = request.getSession(true);
         session.setAttribute("session_user", appsUser);
         String userName = appsUser.getString("name", "");

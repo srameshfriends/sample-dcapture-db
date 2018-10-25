@@ -2,29 +2,31 @@ package sample.dcapture.db.service;
 
 import dcapture.db.core.*;
 import dcapture.db.util.SqlParser;
-import dcapture.io.FormModel;
-import dcapture.io.JsonRequest;
+import dcapture.io.*;
+import sample.dcapture.db.api.KeySequence;
 
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.ws.rs.Path;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
 
-@Path("/expense")
+@HttpPath("/expense")
 public class ExpenseService {
     private SqlDatabase database;
+    private Localization localization;
 
     @Inject
-    public ExpenseService(SqlDatabase database) {
+    public ExpenseService(SqlDatabase database, Localization localization) {
         this.database = database;
+        this.localization = localization;
     }
 
-    @Path("/search")
+    @HttpPath("/search")
+    @HttpMethod("POST")
     public JsonObject search(JsonObject req) throws SQLException {
         FormModel model = new FormModel(req);
         final long start = model.getLongSafe("start");
@@ -50,8 +52,9 @@ public class ExpenseService {
         return result.build();
     }
 
-    @Path("/save")
-    public JsonArray save(JsonRequest req) throws SQLException {
+    @HttpPath("/save")
+    @HttpMethod("PUT")
+    public void save(JsonRequest req, JsonResponse response) throws SQLException {
         SqlParser parser = new SqlParser(database);
         List<DataSet> expenseList = parser.getDataSetList(req.getJsonArray(), "expense");
         DataSet sessionUser = (DataSet) req.getSessionAttribute("session_user");
@@ -59,21 +62,21 @@ public class ExpenseService {
             setDefaultValue(expense, sessionUser);
             parser.hasRequiredValue(expense, "expense");
         }
-        SqlTransaction transaction = database.getTransaction();
-        transaction.begin().save(expenseList, "expense").commit();
-        return Json.createArrayBuilder().build();
+        database.getTransaction().save(expenseList, "expense").commit();
+        response.success(localization.getMessage("actionSave.msg", expenseList.size()));
     }
 
-    @Path("/delete")
-    public JsonArray delete(JsonArray req) throws SQLException {
+    @HttpPath("/delete")
+    @HttpMethod("DELETE")
+    public void delete(JsonArray req, JsonResponse response) throws SQLException {
         SqlParser parser = new SqlParser(database);
         List<DataSet> dataSets = parser.getDataSetList(req, "expense");
-        SqlTransaction transaction = database.getTransaction();
-        transaction.begin().delete(dataSets, "expense").commit();
-        return req;
+        database.getTransaction().delete(dataSets, "expense").commit();
+        response.success(localization.getMessage("actionDelete.msg", dataSets.size()));
     }
 
-    @Path("/reload")
+    @HttpPath("/reload")
+    @HttpMethod("POST")
     public JsonObject load(JsonRequest req) throws SQLException {
         SqlParser parser = new SqlParser(database);
         DataSet expense = parser.getDataSet(req.getJsonObject(), "expense");

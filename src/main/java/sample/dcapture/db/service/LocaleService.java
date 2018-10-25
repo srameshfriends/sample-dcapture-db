@@ -1,16 +1,17 @@
 package sample.dcapture.db.service;
 
+import dcapture.io.HttpMethod;
+import dcapture.io.HttpPath;
 import dcapture.io.Localization;
 
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.ws.rs.Path;
 import java.util.Map;
 import java.util.Properties;
 
-@Path("/locale")
+@HttpPath(value = "/locale", secured = false)
 public class LocaleService {
     private Localization locale;
 
@@ -19,7 +20,8 @@ public class LocaleService {
         this.locale = locale;
     }
 
-    @Path("/default")
+    @HttpPath(value = "/default", secured = false)
+    @HttpMethod("POST")
     private JsonObject locale() {
         Properties prop = locale.getProperties(null);
         JsonObjectBuilder result = Json.createObjectBuilder();

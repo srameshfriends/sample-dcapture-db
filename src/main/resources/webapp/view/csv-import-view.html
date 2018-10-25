@@ -151,14 +151,16 @@
             let saveBtn = $("#actionSave");
             saveBtn.prop('disabled', true);
             $.ajax({
-                type: "POST",
+                type: "PUT",
                 dataType: "text/csv",
                 url: url,
                 data: data,
                 error: function (msg) {
                     MessageDialog.show(msg.responseText);
-                    let obj = self.paging.get();
-                    self.setFlag(obj.start, obj.limit, 200 === msg.status);
+                    if(200 === msg.status){
+                        let obj = self.paging.get();
+                        self.setFlag(obj.start, obj.limit, 200 === msg.status);
+                    }
                 },
                 complete: function () {
                     saveBtn.prop('disabled', false);

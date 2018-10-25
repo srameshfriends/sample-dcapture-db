@@ -4,21 +4,18 @@ import dcapture.db.core.*;
 import dcapture.db.util.SqlParser;
 import dcapture.db.util.SqlServletRequest;
 import dcapture.db.util.SqlServletResponse;
-import dcapture.io.FormModel;
-import dcapture.io.HtmlResponse;
-import dcapture.io.Localization;
+import dcapture.io.*;
 
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.ws.rs.Path;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
-@Path("/currency")
+@HttpPath("/currency")
 public class CurrencyService {
     private SqlDatabase database;
     private Localization localization;
@@ -29,7 +26,8 @@ public class CurrencyService {
         this.localization = localization;
     }
 
-    @Path("/search")
+    @HttpPath("/search")
+    @HttpMethod("POST")
     public JsonObject search(JsonObject req) throws SQLException {
         SqlParser parser = new SqlParser(database);
         FormModel model = new FormModel(req);
@@ -54,8 +52,9 @@ public class CurrencyService {
         return result.build();
     }
 
-    @Path("/save")
-    public JsonArray save(JsonArray req) throws SQLException {
+    @HttpPath("/save")
+    @HttpMethod("PUT")
+    public void save(JsonArray req, JsonResponse response) throws SQLException {
         SqlParser parser = new SqlParser(database);
         List<DataSet> modelList = parser.getDataSetList(req, "currency");
         for (DataSet model : modelList) {
@@ -63,20 +62,22 @@ public class CurrencyService {
             parser.hasRequiredValue(model, "currency");
         }
         SqlTransaction transaction = database.getTransaction();
-        transaction.begin().save(modelList, "currency").commit();
-        return req;
+        transaction.save(modelList, "currency").commit();
+        response.success(localization.getMessage("actionSave.msg", modelList.size()));
     }
 
-    @Path("/delete")
-    public JsonArray delete(JsonArray req) throws SQLException {
+    @HttpPath("/delete")
+    @HttpMethod("DELETE")
+    public void delete(JsonArray req, JsonResponse response) throws SQLException {
         SqlParser parser = new SqlParser(database);
         List<DataSet> dataSets = parser.getDataSetList(req, "currency");
         SqlTransaction transaction = database.getTransaction();
-        transaction.begin().delete(dataSets, "currency").commit();
-        return req;
+        transaction.delete(dataSets, "currency").commit();
+        response.success(localization.getMessage("actionDelete.msg", dataSets.size()));
     }
 
-    @Path("/import/csv")
+    @HttpPath("/import/csv")
+    @HttpMethod("PUT")
     public void importCsv(SqlServletRequest request, HtmlResponse response) throws SQLException, IOException {
         SqlParser parser = new SqlParser(database);
         List<DataSet> modelList = request.getDataSetsFromCsv(database, "currency");
@@ -84,12 +85,11 @@ public class CurrencyService {
             setStatus(model);
             parser.hasRequiredValue(model, "currency");
         }
-        SqlTransaction transaction = database.getTransaction();
-        transaction.begin().insert(modelList, "currency").commit();
-        response.success(localization.getMessage("recordsImported.msg", modelList.size()));
+        database.getTransaction().insert(modelList, "currency").commit();
+        response.success(localization.getMessage("actionImport.msg", modelList.size()));
     }
 
-    @Path("/export/csv")
+    @HttpPath("/export/csv")
     public void exportCsv(SqlServletResponse response) throws SQLException, IOException {
         SelectQuery query = database.getSelectQuery();
         query.select("currency", "code", "name", "symbol", "precision").append(" ORDER BY code, name");
