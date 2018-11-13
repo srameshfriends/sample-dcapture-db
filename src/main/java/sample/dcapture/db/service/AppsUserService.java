@@ -1,7 +1,6 @@
 package sample.dcapture.db.service;
 
 import dcapture.db.core.*;
-import dcapture.db.util.SqlParser;
 import dcapture.io.*;
 
 import javax.inject.Inject;
@@ -9,7 +8,6 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -17,6 +15,10 @@ import java.util.regex.Pattern;
 @HttpPath(value = "/user", secured = false)
 public class AppsUserService {
     private static final String EMAIL_REGEX = "^[\\w-+]+(\\.[\\w]+)*@[\\w-]+(\\.[\\w]+)*(\\.[a-z]{2,})$";
+    private static final String TABLE = "apps_user";
+    private static final String[] UPDATE = new String[]{"name", "status"};
+    private static final String[] CREATE_USER = new String[]{"email", "name", "password", "status"};
+    private static final String[] SEARCH = new String[]{"email", "name", "status"};
     private SqlDatabase database;
     private Localization locale;
 
@@ -27,101 +29,91 @@ public class AppsUserService {
     }
 
     @HttpPath("/search")
-    @HttpMethod("POST")
-    public JsonObject search(JsonObject req) throws Exception {
-        FormModel model = new FormModel(req);
-        final long start = model.getLongSafe("start");
-        int limit = model.getIntSafe("limit");
-        limit = 0 < limit ? limit : 20;
-        SelectQuery dataQuery = database.getSelectQuery().selectColumnSet("apps_user", "search");
-        WhereQuery whereQuery = dataQuery.whereQuery().likeColumnSet(
-                model.getStringSafe("searchText"), "apps_user", "searchText");
-        dataQuery.append(whereQuery).append(" ORDER BY email, name").limit(limit, start);
-        List<DataSet> dataList = dataQuery.getDataSetList();
-        //
-        SelectQuery totalQuery = database.getSelectQuery();
-        totalQuery.append("SELECT COUNT(*) ").append(" FROM ").addTable("apps_user").append(whereQuery);
-        int totalRecords = totalQuery.getInt();
+    public JsonObject search(JsonRequest req) {
+        SqlQuery query = database.getQuery();
+        long start = req.getLong("start");
+        int limit = req.getInt("limit", 20);
+        SelectQuery selectQuery = query.selectFrom(TABLE, "email", "name", "status");
+        selectQuery.like(req.getString("searchText"), "email", "name");
+        selectQuery.orderBy(" email, name").limit(limit, start);
+        List<DataSet> dataList = selectQuery.getDataSetList();
         JsonObjectBuilder builder = Json.createObjectBuilder();
-        SqlParser parser = new SqlParser(database);
-        builder.add("apps_user", parser.getArray(dataList, "apps_user", "name", "email", "status"));
+        builder.add(TABLE, database.getParser().getJsonArray(dataList, TABLE, SEARCH));
         builder.add("start", start);
         builder.add("limit", limit);
-        builder.add("totalRecords", totalRecords);
+        builder.add("totalRecords", selectQuery.getRowCount());
         builder.add("length", dataList.size());
         return builder.build();
     }
 
     @HttpPath(value = "/create1", secured = false)
-    @HttpMethod("POST")
-    public JsonObject create1(JsonRequest request) throws Exception {
-        String name = request.getString("name");
-        String email = request.getString("email");
+    public JsonObject create1(JsonRequest request) {
+        final String name = request.getString("name");
+        final String email = request.getString("email");
         if (notValid(name) || !isValidEmail(email)) {
             throw new IllegalArgumentException(locale.get("email.invalid"));
         }
-        SelectQuery query = database.getSelectQuery();
-        query.select("apps_user").append("WHERE email=?").setParameter(email).limit(1);
-        DataSet appsUser = query.getDataSet();
+        final JsonObjectBuilder result = Json.createObjectBuilder();
+        SqlQuery query = database.getQuery();
+        SelectQuery selectQuery = query.selectAll(TABLE).equalTo("email", email).limit(1);
+        DataSet appsUser = selectQuery.getDataSet();
         if (appsUser != null && !"Pending".equals(appsUser.getString("status", ""))) {
             throw new IllegalArgumentException(locale.getMessage("emailAlreadyRegistered", email));
         }
-        JsonObjectBuilder result = Json.createObjectBuilder();
         result.add("name", name);
         final String code = appsUser != null ? appsUser.getString("password", "") : UUID.randomUUID().toString();
         if (appsUser == null) {
             appsUser = new DataSet().set("email", email).set("name", name).set("password", code);
             appsUser.set("status", "Pending");
-            database.getTransaction().insert(appsUser, "apps_user").commit();
+            query.insert(appsUser, TABLE, CREATE_USER).commit();
         }
         result.add("code", code);
         return result.build();
     }
 
     @HttpPath(value = "/create2", secured = false)
-    @HttpMethod("POST")
-    public JsonObject create2(JsonRequest request) throws Exception {
-        String code = request.getString("code");
-        String value = request.getString("value");
+    public JsonObject create2(JsonRequest request) {
+        final String code = request.getString("code");
+        final String value = request.getString("value");
         if (notValid(code)) {
             throw new IllegalArgumentException(locale.get("actionPrevious"));
         }
         if (notValid(value)) {
             throw new IllegalArgumentException(locale.get("apps_user.password.invalid"));
         }
-        SelectQuery query = database.getSelectQuery().select("apps_user");
-        DataSet appsUser = query.append(" WHERE password = ?").setParameter(code)
-                .limit(1).getDataSet();
+        JsonObjectBuilder result = Json.createObjectBuilder();
+        SqlQuery query = database.getQuery();
+        SelectQuery selectQuery = query.selectAll(TABLE).equalTo("password", code).limit(1);
+        DataSet appsUser = selectQuery.getDataSet();
         if (appsUser == null) {
             throw new NullPointerException(locale.get("actionPrevious"));
         }
         appsUser.unlock().set("password", value).set("status", "Active");
-        database.getTransaction().update(appsUser, "apps_user", "required").commit();
-        JsonObjectBuilder result = Json.createObjectBuilder();
+        query.update(appsUser, TABLE, CREATE_USER).commit();
         result.add("user", appsUser.getString("name", ""));
         result.add("email", appsUser.getString("email", ""));
         return result.build();
     }
 
-    @HttpPath("/save")
+    @HttpPath("/update")
     @HttpMethod("PUT")
-    public void save(JsonArray req, JsonResponse response) throws SQLException {
-        SqlParser parser = new SqlParser(database);
-        List<DataSet> appsUserList = parser.getDataSetList(req, "apps_user");
+    public void update(JsonArray req, JsonResponse response) {
+        SqlParser parser = database.getParser();
+        List<DataSet> appsUserList = parser.getDataSetList(req, TABLE);
         for (DataSet appsUser : appsUserList) {
             setStatus(appsUser);
-            parser.hasRequiredValue(appsUser, "apps_user", "save");
+            parser.hasRequired(appsUser, TABLE, UPDATE);
         }
-        database.getTransaction().update(appsUserList, "apps_user", "save").commit();
+        database.getQuery().update(appsUserList, TABLE, UPDATE).commit();
         response.success(locale.getMessage("actionSave.msg", appsUserList.size()));
     }
 
     @HttpPath("/delete")
     @HttpMethod("DELETE")
-    public void delete(JsonArray req, JsonResponse response) throws SQLException {
-        SqlParser parser = new SqlParser(database);
-        List<DataSet> userList = parser.getDataSetList(req, "apps_user");
-        database.getTransaction().delete(userList, "apps_user").commit();
+    public void delete(JsonArray req, JsonResponse response) {
+        SqlParser parser = database.getParser();
+        List<DataSet> userList = parser.getDataSetList(req, TABLE);
+        database.getQuery().delete(userList, TABLE).commit();
         response.success(locale.getMessage("actionDelete.msg", userList.size()));
     }
 

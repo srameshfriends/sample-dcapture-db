@@ -1,0 +1,130 @@
+[
+  {
+    "name": "apps_user",
+    "columns": [
+      {
+        "name": "id",
+        "primary": true
+      },
+      {
+        "name": "email",
+        "unique": true
+      },
+      {
+        "name": "name"
+      },
+      {
+        "name": "password"
+      },
+      {
+        "name": "status"
+      }
+    ]
+  },
+  {
+    "name": "session_batch",
+    "columns": [
+      {
+        "name": "id",
+        "type": "long",
+        "primary": true
+      },
+      {
+        "name": "code",
+        "unique": true
+      },
+      {
+        "name": "email"
+      },
+      {
+        "name": "client"
+      },
+      {
+        "name": "created_on",
+        "type": "localdatetime"
+      }
+    ]
+  },
+  {
+    "name": "expense_category",
+    "columns": [
+      {
+        "name": "id",
+        "primary": true
+      },
+      {
+        "name": "code",
+        "unique": true
+      },
+      {
+        "name": "name"
+      }
+    ]
+  },
+  {
+    "name": "currency",
+    "columns": [
+      {
+        "name": "id",
+        "primary": true
+      },
+      {
+        "name": "code",
+        "unique": true
+      },
+      {
+        "name": "name"
+      },
+      {
+        "name": "symbol"
+      },
+      {
+        "name": "precision",
+        "type": "int"
+      }
+    ]
+  },
+  {
+    "name": "expense",
+    "columns": [
+      {
+        "name": "id",
+        "primary": true
+      },
+      {
+        "name": "code",
+        "unique": true
+      },
+      {
+        "name": "created_by",
+        "reference": "apps_user"
+      },
+      {
+        "name": "created_on",
+        "type": "localdatetime"
+      },
+      {
+        "name": "expense_date",
+        "type": "localdate"
+      },
+      {
+        "name": "description",
+        "type": "text"
+      },
+      {
+        "name": "expense_category",
+        "reference": "expense_category",
+        "columnGroup": "reference"
+      },
+      {
+        "name": "currency",
+        "reference": "currency",
+        "columnGroup": "reference"
+      },
+      {
+        "name": "amount",
+        "type": "double"
+      }
+    ]
+  }
+]

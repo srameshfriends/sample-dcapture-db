@@ -24,10 +24,6 @@
                             <input data-id="expense_category.name" data-type="text" class="form-control">
                         </div>
                         <div class="form-group">
-                            <label data-locale="expense_category.status" class="form-control-label"></label>
-                            <input data-id="expense_category.status" data-type="text" class="form-control">
-                        </div>
-                        <div class="form-group">
                             <button id="actionSave" type="button" class="btn btn-outline-primary" data-locale="actionSave" ></button>
                         </div>
                     </form>
@@ -93,7 +89,6 @@
                     <th data-type="selectable" width="40px"></th>
                     <th data-type="link" data-id="categoryList.code" data-locale="expense_category.code"></th>
                     <th data-type="text" data-id="categoryList.name" data-locale="expense_category.name"></th>
-                    <th data-type="text" data-id="categoryList.status" data-locale="expense_category.status"></th>
                 </tr>
                 </thead>
                 <tbody data-id="currencyList">
@@ -154,7 +149,10 @@
                 data: JSON.stringify(data),
                 error: function (err) {
                     MessageDialog.show(err.responseText);
-                    self.search(self.paging.get());
+                    if(200 === err.status){
+                        self.showListView();
+                        self.search(self.paging.get());
+                    }
                 },
                 success: function () {
                 }

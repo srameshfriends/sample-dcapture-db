@@ -1,22 +1,25 @@
 package sample.dcapture.db.service;
 
 import dcapture.db.core.*;
-import dcapture.db.util.SqlParser;
-import dcapture.db.util.SqlServletRequest;
-import dcapture.db.util.SqlServletResponse;
 import dcapture.io.*;
+import sample.dcapture.db.shared.SqlServletUtils;
 
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 @HttpPath("/currency")
 public class CurrencyService {
+    private static final String TABLE = "currency";
+    private static final String[] INSERT = new String[]{"code", "name", "symbol", "precision"};
+    private static final String[] REQUIRED = new String[]{"code", "name", "symbol"};
+    private static final String[] UPDATE = new String[]{"name", "symbol", "precision"};
     private SqlDatabase database;
     private Localization localization;
 
@@ -27,81 +30,73 @@ public class CurrencyService {
     }
 
     @HttpPath("/search")
-    @HttpMethod("POST")
-    public JsonObject search(JsonObject req) throws SQLException {
-        SqlParser parser = new SqlParser(database);
-        FormModel model = new FormModel(req);
-        long start = model.getLongSafe("start");
-        int limit = model.getIntSafe("limit");
-        limit = 0 < limit ? limit : 20;
-        SelectQuery dataQuery = database.getSelectQuery().select("currency");
-        WhereQuery whereQuery = dataQuery.whereQuery().likeColumnSet(
-                model.getStringSafe("searchText"), "currency", "searchText");
-        dataQuery.append(whereQuery).append(" ORDER BY code, name").limit(limit, start);
-        List<DataSet> dataList = dataQuery.getDataSetList();
-        //
-        SelectQuery totalQuery = database.getSelectQuery();
-        totalQuery.append("SELECT COUNT(*) FROM ").addTable("currency").append(whereQuery);
-        Number totalRecords = (Number) totalQuery.getValue();
+    public JsonObject search(JsonRequest req) {
+        SqlParser parser = database.getParser();
+        SqlQuery query = database.getQuery();
+        long start = req.getLong("start");
+        int limit = req.getInt("limit", 20);
+        SelectQuery selectQry = query.selectAll(TABLE);
+        selectQry.like(req.getString("searchText"), "code", "name").orderBy("code, name").limit(limit, start);
+        List<DataSet> dataList = selectQry.getDataSetList();
         JsonObjectBuilder result = Json.createObjectBuilder();
-        result.add("currency", parser.getArray(dataList, "currency"));
+        result.add(TABLE, parser.getJsonArray(dataList, TABLE));
         result.add("start", start);
         result.add("limit", limit);
-        result.add("totalRecords", totalRecords.intValue());
+        result.add("totalRecords", selectQry.getRowCount());
         result.add("length", dataList.size());
         return result.build();
     }
 
     @HttpPath("/save")
     @HttpMethod("PUT")
-    public void save(JsonArray req, JsonResponse response) throws SQLException {
-        SqlParser parser = new SqlParser(database);
-        List<DataSet> modelList = parser.getDataSetList(req, "currency");
-        for (DataSet model : modelList) {
-            setStatus(model);
-            parser.hasRequiredValue(model, "currency");
+    public void save(JsonArray req, JsonResponse response) {
+        SqlParser parser = database.getParser();
+        List<DataSet> sourceList = parser.getDataSetList(req, TABLE);
+        List<DataSet> insertList = new ArrayList<>();
+        List<DataSet> updateList = new ArrayList<>();
+        for (DataSet source : sourceList) {
+            parser.hasRequired(source, TABLE, REQUIRED);
+            if (0 == source.getLong("id")) {
+                insertList.add(source);
+            } else {
+                updateList.add(source);
+            }
         }
-        SqlTransaction transaction = database.getTransaction();
-        transaction.save(modelList, "currency").commit();
-        response.success(localization.getMessage("actionSave.msg", modelList.size()));
+        if (!insertList.isEmpty()) {
+            database.getQuery().insert(insertList, TABLE, INSERT);
+        }
+        if (!updateList.isEmpty()) {
+            database.getQuery().update(updateList, TABLE, UPDATE);
+        }
+        database.getQuery().commit();
+        response.success(localization.getMessage("actionSave.msg", sourceList.size()));
     }
 
     @HttpPath("/delete")
     @HttpMethod("DELETE")
-    public void delete(JsonArray req, JsonResponse response) throws SQLException {
-        SqlParser parser = new SqlParser(database);
-        List<DataSet> dataSets = parser.getDataSetList(req, "currency");
-        SqlTransaction transaction = database.getTransaction();
-        transaction.delete(dataSets, "currency").commit();
+    public void delete(JsonArray req, JsonResponse response) {
+        SqlParser parser = database.getParser();
+        List<DataSet> dataSets = parser.getDataSetList(req, TABLE);
+        database.getQuery().delete(dataSets, TABLE).commit();
         response.success(localization.getMessage("actionDelete.msg", dataSets.size()));
     }
 
     @HttpPath("/import/csv")
     @HttpMethod("PUT")
-    public void importCsv(SqlServletRequest request, HtmlResponse response) throws SQLException, IOException {
-        SqlParser parser = new SqlParser(database);
-        List<DataSet> modelList = request.getDataSetsFromCsv(database, "currency");
+    public void importCsv(HtmlRequest request, HtmlResponse response) throws IOException {
+        SqlParser parser = database.getParser();
+        List<DataSet> modelList = SqlServletUtils.getDataSetsFromCsv(request, database, TABLE);
         for (DataSet model : modelList) {
-            setStatus(model);
-            parser.hasRequiredValue(model, "currency");
+            parser.hasRequired(model, TABLE, REQUIRED);
         }
-        database.getTransaction().insert(modelList, "currency").commit();
+        database.getQuery().insert(modelList, TABLE, INSERT).commit();
         response.success(localization.getMessage("actionImport.msg", modelList.size()));
     }
 
     @HttpPath("/export/csv")
-    public void exportCsv(SqlServletResponse response) throws SQLException, IOException {
-        SelectQuery query = database.getSelectQuery();
-        query.select("currency", "code", "name", "symbol", "precision").append(" ORDER BY code, name");
-        response.sendAttachment("text/csv", "currency", query);
-    }
-
-    private void setStatus(DataSet source) {
-        String status = (String) source.get("status");
-        if ("Active".equals(status) || "Inactive".equals(status)) {
-            source.set("status", status);
-        } else {
-            source.set("status", "Active");
-        }
+    public void exportCsv(HttpServletResponse response) {
+        SelectQuery query = database.getQuery().selectFrom(TABLE, "code, name, symbol, precision ")
+                .orderBy("code, name");
+        SqlServletUtils.sendCsvAttachment(response, query, TABLE);
     }
 }

@@ -1,0 +1,109 @@
+{
+  "apps_user_insert": [
+    "email",
+    "name",
+    "password",
+    "status"
+  ],
+  "apps_user_required": [
+    "email",
+    "name",
+    "password"
+  ],
+  "session_batch_insert": [
+    "code",
+    "email",
+    "client",
+    "created_on"
+  ],
+  "session_batch_update": [
+    "code",
+    "email",
+    "client"
+  ],
+  "expense_category_insert": [
+    "code",
+    "name",
+    "status"
+  ],
+  "expense_category_required": [
+    "code",
+    "name",
+    "status"
+  ],
+  "expense_category_update": [
+    "code",
+    "name",
+    "status"
+  ],
+  "expense_category_searchText": [
+    "code",
+    "name"
+  ],
+  "currency_insert": [
+    "code",
+    "name",
+    "precision",
+    "symbol",
+    "status"
+  ],
+  "currency_required": [
+    "code",
+    "name",
+    "symbol",
+    "status"
+  ],
+  "currency_update": [
+    "code",
+    "name",
+    "precision",
+    "symbol",
+    "status"
+  ],
+  "currency_searchText": [
+    "code",
+    "name"
+  ],
+  "expense_insert": [
+    "code",
+    "expense_date",
+    "description",
+    "expense_category",
+    "currency",
+    "amount",
+    "created_by",
+    "status"
+  ],
+  "expense_update": [
+    "code",
+    "code",
+    "expense_date",
+    "description",
+    "expense_category",
+    "currency",
+    "amount",
+    "status"
+  ],
+  "expense_required": [
+    "code",
+    "expense_date",
+    "description",
+    "expense_category",
+    "currency",
+    "amount"
+  ],
+  "expense_search": [
+    "id",
+    "expense_date",
+    "code",
+    "description",
+    "expense_category",
+    "currency",
+    "amount"
+  ],
+  "expense_searchText": [
+    "code",
+    "description"
+  ]
+}
+

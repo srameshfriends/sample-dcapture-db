@@ -1,72 +1,44 @@
 [
   {
     "name": "key_sequence",
-    "group": "master",
     "columns": [
       {
         "name": "id",
-        "type": "long",
         "primary": true
       },
       {
         "name": "name",
-        "type": "string",
         "length": 64,
         "unique": true
       },
       {
         "name": "type",
-        "type": "string",
         "length": 16
       },
       {
         "name": "prefix",
-        "type": "string",
         "length": 8
-      }
-    ],
-    "columnSet": [
-      {
-        "name": "insert",
-        "columns": [
-          "name",
-          "type",
-          "prefix"
-        ]
-      },
-      {
-        "name": "update",
-        "columns": [
-          "name",
-          "type",
-          "prefix"
-        ]
       }
     ]
   },
   {
     "name": "key_sequence_line",
-    "group": "master",
     "columns": [
       {
         "name": "id",
-        "type": "long",
         "primary": true
       },
       {
         "name": "key_sequence",
-        "type": "object",
         "reference": "key_sequence",
         "notNull": true
       },
       {
         "name": "prefix",
-        "type": "string",
         "length": 8
       },
       {
         "name": "pattern",
-        "type": "string",
         "length": 16
       },
       {
@@ -87,34 +59,67 @@
       },
       {
         "name": "last_key",
-        "type": "string",
         "length": 64
       }
-    ],
-    "columnSet": [
+    ]
+  },
+  {
+    "name": "remote_disk",
+    "columns": [
       {
-        "name": "insert",
-        "columns": [
-          "prefix",
-          "pattern",
-          "year",
-          "month",
-          "day",
-          "last_index",
-          "last_key"
-        ]
+        "name": "id",
+        "primary": true
       },
       {
-        "name": "update",
-        "columns": [
-          "prefix",
-          "pattern",
-          "year",
-          "month",
-          "day",
-          "last_index",
-          "last_key"
-        ]
+        "name": "name",
+        "length": 64,
+        "unique": true
+      },
+      {
+        "name": "description"
+      },
+      {
+        "name": "url"
+      },
+      {
+        "name": "valid",
+        "type": "boolean"
+      }
+    ]
+  },
+  {
+    "name": "remote_file",
+    "columns": [
+      {
+        "name": "id",
+        "primary": true
+      },
+      {
+        "name": "remote_disk",
+        "reference": "remote_disk",
+        "notNull": true
+      },
+      {
+        "name": "name"
+      },
+      {
+        "name": "checksum"
+      },
+      {
+        "name": "width",
+        "type": "integer"
+      },
+      {
+        "name": "height",
+        "type": "integer"
+      },
+      {
+        "name": "length",
+        "type": "long"
+      },
+      {
+        "name": "verified_on",
+        "type": "localDateTime"
       }
     ]
   }

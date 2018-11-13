@@ -1,4 +1,4 @@
-package sample.dcapture.db.dev;
+package sample.dcapture.db.luncher;
 
 import java.sql.SQLException;
 

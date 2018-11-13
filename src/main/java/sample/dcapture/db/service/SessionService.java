@@ -15,25 +15,26 @@ import java.util.UUID;
 
 @HttpPath(value = "/session", secured = false)
 public class SessionService {
+    private static final String SESSION_USER = "session_user";
+    private static final String USER_TABLE = "apps_user", SESSION_BATCH_TABLE = "session_batch";
     private SqlDatabase database;
     private Localization locale;
-    private BaseSettings settings;
+    private AppSettings settings;
 
     @Inject
-    public SessionService(Localization locale, SqlDatabase database, BaseSettings settings) {
+    public SessionService(Localization locale, SqlDatabase database, AppSettings settings) {
         this.database = database;
         this.locale = locale;
         this.settings = settings;
     }
 
     @HttpPath(value = "/validate", secured = false)
-    @HttpMethod("POST")
     public JsonObject validate(JsonRequest request) {
         if (request.getSession(false) == null ||
-                request.getSession(false).getAttribute("apps_user") == null) {
+                request.getSession(false).getAttribute(USER_TABLE) == null) {
             return toJsonObject("", "", "", "", false);
         }
-        DataSet appsUser = (DataSet) request.getSession(false).getAttribute("apps_user");
+        DataSet appsUser = (DataSet) request.getSession(false).getAttribute(USER_TABLE);
         String email = appsUser.getString("email", "");
         String name = appsUser.getString("name", "");
         String id = request.getSession(false).getId();
@@ -51,7 +52,6 @@ public class SessionService {
     }
 
     @HttpPath(value = "/reset", secured = false)
-    @HttpMethod("POST")
     public JsonObject validate(JsonObject request) {
         JsonObjectBuilder builder = Json.createObjectBuilder();
         builder.add("status", "success");
@@ -60,35 +60,27 @@ public class SessionService {
     }
 
     @HttpPath(value = "/authorise1", secured = false)
-    @HttpMethod("POST")
-    public void authorise1(JsonRequest request, JsonResponse response) throws Exception {
+    public JsonObject authorise1(JsonRequest request) {
         String email = request.getString("email");
         if (notValid(email)) {
-            response.error(locale.get("apps_user.email.invalid"));
-            return;
+            throw new IllegalArgumentException(locale.get("apps_user.email.invalid"));
         }
-        SelectQuery query = database.getSelectQuery().append("SELECT email FROM ").addTable("apps_user");
-        query.append(" WHERE email = ?").setParameter(email);
-        String oldEmail = query.getString();
+        SqlQuery query = database.getQuery();
+        SelectQuery selectQry = query.selectFrom(USER_TABLE, "email").equalTo("email", email);
+        String oldEmail = selectQry.getString();
         if (oldEmail == null || !oldEmail.equals(email)) {
-            response.error(locale.get("apps_user.email.invalid"));
-            return;
+            throw new IllegalArgumentException(locale.get("apps_user.email.invalid"));
         }
-        SqlTransaction transaction = database.getTransaction();
-        DeleteQuery deleteQuery = database.getDeleteQuery().delete("session_batch");
-        deleteQuery.append(deleteQuery.whereQuery().equalTo("email", email));
-        transaction.executeUpdate(deleteQuery);
+        query.delete(SESSION_BATCH_TABLE).equalTo("email", email);
         String code = UUID.randomUUID().toString();
-        InsertQuery insertQuery = database.getInsertQuery();
-        insertQuery.insert("session_batch").set("email", email).set("code", code);
+        InsertQuery insertQuery = query.insert(SESSION_BATCH_TABLE).set("email", email).set("code", code);
         insertQuery.set("created_on", LocalDateTime.now()).set("client", getClientInfo(request));
-        transaction.executeUpdate(insertQuery).commit();
-        response.sendObject(toJsonObject("", "", email, code, false));
+        query.commit();
+        return toJsonObject("", "", email, code, false);
     }
 
     @HttpPath(value = "/authorise2", secured = false)
-    @HttpMethod("POST")
-    public void authorise2(JsonRequest request, JsonResponse response) throws Exception {
+    public void authorise2(JsonRequest request, JsonResponse response) {
         String code = request.getString("code", "");
         String pass = request.getString("pass", "");
         if (notValid(code)) {
@@ -99,25 +91,22 @@ public class SessionService {
             response.error(locale.get("userOrPasswordNotValid"));
             return;
         }
-        SelectQuery query = database.getSelectQuery();
-        query.select("session_batch", "email").append(" WHERE code = ?").setParameter(code);
-        String email = (String) query.getValue();
+        SqlQuery query = database.getQuery();
+        String email = query.selectFrom(SESSION_BATCH_TABLE, "email").equalTo("code", code).limit(1).getString();
         if (email == null) {
             response.sendObject(toJsonObject("", "", "", "", false));
             return;
         }
-        SelectQuery userQuery = database.getSelectQuery();
-        userQuery.select("apps_user").append(" WHERE email = ?").setParameter(email).limit(1);
+        SelectQuery userQuery = query.selectAll(USER_TABLE).equalTo("email", email).and("password", pass).limit(1);
         DataSet appsUser = userQuery.getDataSet();
         if (appsUser == null || !pass.equals(appsUser.getString("password", ""))) {
             response.error(locale.get("userOrPasswordNotValid"));
             return;
         }
-        DeleteQuery deleteQuery = database.getDeleteQuery().delete("session_batch");
-        deleteQuery.append("WHERE email = ?").setParameter(email);
-        database.getTransaction().executeUpdate(deleteQuery).commit();
+        query.delete(SESSION_BATCH_TABLE).equalTo("email", email);
+        query.commit();
         HttpSession session = request.getSession(true);
-        session.setAttribute("session_user", appsUser);
+        session.setAttribute(SESSION_USER, appsUser);
         String userName = appsUser.getString("name", "");
         response.sendObject(toJsonObject(session.getId(), userName, email, "", true));
     }

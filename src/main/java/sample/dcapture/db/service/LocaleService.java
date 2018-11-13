@@ -21,7 +21,6 @@ public class LocaleService {
     }
 
     @HttpPath(value = "/default", secured = false)
-    @HttpMethod("POST")
     private JsonObject locale() {
         Properties prop = locale.getProperties(null);
         JsonObjectBuilder result = Json.createObjectBuilder();

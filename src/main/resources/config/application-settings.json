@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "language": "en",
+  "port": 9090,
+  "id": "SAM",
+  "name": "Textiles Nadungadu",
+  "database": "jdbc:postgresql://localhost/expense cG9zdGdyZXM= cG9zdGdyZXM=",
+  "languages": {
+    "en": [
+      "sample-en.properties",
+      "system-en.properties"
+    ]
+  },
+  "databases": [
+    "system-db.json",
+    "sample-db.json"
+  ],
+  "columnSets": [
+    "sample-columns.json"
+  ],
+  "appData": {
+    "keySequence": "key_sequence.csv"
+  }
+}

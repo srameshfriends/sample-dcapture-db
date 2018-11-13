@@ -112,8 +112,11 @@
                 dataType: "json",
                 url: "api/expense/save",
                 data: JSON.stringify(data),
-                error: function (err) {
-                    MessageDialog.show(err.responseText);
+                error: function (msg) {
+                    MessageDialog.show(msg.responseText);
+                    if(200 === msg.status) {
+                        PageManager.show("view/expense-list.html");
+                    }
                 },
                 success: function () {
                 }

@@ -1,7 +1,6 @@
 package sample.dcapture.db.service;
 
 import dcapture.db.core.*;
-import dcapture.db.util.SqlParser;
 import dcapture.io.*;
 
 import javax.inject.Inject;
@@ -9,11 +8,15 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 @HttpPath("/expense_category")
 public class ExpenseCategoryService {
+    private static final String TABLE = "expense_category";
+    private static final String[] REQUIRED = new String[]{"code", "name"};
+    private static final String[] INSERT = new String[]{"code", "name"};
+    private static final String[] UPDATE = new String[]{"name"};
     private SqlDatabase database;
     private Localization localization;
 
@@ -24,59 +27,55 @@ public class ExpenseCategoryService {
     }
 
     @HttpPath("/search")
-    @HttpMethod("POST")
-    public JsonObject search(JsonObject req) throws SQLException {
-        SqlParser parser = new SqlParser(database);
-        FormModel model = new FormModel(req);
-        long start = model.getLongSafe("start");
-        int limit = model.getIntSafe("limit");
-        limit = 0 < limit ? limit : 20;
-        SelectQuery dataQuery = database.getSelectQuery().select("expense_category");
-        WhereQuery whereQuery = dataQuery.whereQuery();
-        whereQuery.likeColumnSet(model.getStringSafe("searchText"), "expense_category", "searchText");
-        dataQuery.append(whereQuery).append(" ORDER BY code, name").limit(limit, start);
-        List<DataSet> dataList = dataQuery.getDataSetList();
-        //
-        SelectQuery totalQuery = database.getSelectQuery();
-        totalQuery.append("SELECT COUNT(*) FROM ").addTable("expense_category").append(whereQuery);
-        int totalRecords = totalQuery.getInt();
+    public JsonObject search(JsonRequest req) {
+        SqlParser parser = database.getParser();
+        final long start = req.getLong("start");
+        final int limit = req.getInt("limit", 20);
         JsonObjectBuilder result = Json.createObjectBuilder();
-        result.add("expense_category", parser.getArray(dataList, "expense_category"));
+        SqlQuery query = database.getQuery();
+        SelectQuery dataQuery = query.selectAll(TABLE);
+        dataQuery.like(req.getString("searchText"), REQUIRED);
+        dataQuery.orderBy("code, name").limit(limit, start);
+        List<DataSet> dataList = dataQuery.getDataSetList();
+        result.add(TABLE, parser.getJsonArray(dataList, TABLE));
         result.add("start", start);
         result.add("limit", limit);
-        result.add("totalRecords", totalRecords);
+        result.add("totalRecords", dataQuery.getRowCount());
         result.add("length", dataList.size());
         return result.build();
     }
 
     @HttpPath("/save")
     @HttpMethod("PUT")
-    public void save(JsonArray req, JsonResponse response) throws SQLException {
-        SqlParser parser = new SqlParser(database);
-        List<DataSet> categoryList = parser.getDataSetList(req, "expense_category");
-        for (DataSet category : categoryList) {
-            setStatus(category);
-            parser.hasRequiredValue(category, "expense_category");
+    public void save(JsonArray req, JsonResponse response) {
+        SqlParser parser = database.getParser();
+        List<DataSet> sourceList = parser.getDataSetList(req, TABLE);
+        List<DataSet> insertList = new ArrayList<>();
+        List<DataSet> updateList = new ArrayList<>();
+        for (DataSet source : sourceList) {
+            parser.hasRequired(source, TABLE, REQUIRED);
+            if (0 == source.getLong("id")) {
+                insertList.add(source);
+            } else {
+                updateList.add(source);
+            }
         }
-        database.getTransaction().save(categoryList, "expense_category").commit();
-        response.success(localization.getMessage("actionSave.msg", categoryList.size()));
+        if (!insertList.isEmpty()) {
+            database.getQuery().insert(insertList, TABLE, INSERT);
+        }
+        if (!updateList.isEmpty()) {
+            database.getQuery().update(updateList, TABLE, UPDATE);
+        }
+        database.getQuery().commit();
+        response.success(localization.getMessage("actionSave.msg", sourceList.size()));
     }
 
     @HttpPath("/delete")
     @HttpMethod("DELETE")
-    public void delete(JsonArray req, JsonResponse response) throws SQLException {
-        SqlParser parser = new SqlParser(database);
+    public void delete(JsonArray req, JsonResponse response) {
+        SqlParser parser = database.getParser();
         List<DataSet> dataSets = parser.getDataSetList(req, "expense_category");
-        database.getTransaction().delete(dataSets, "expense_category").commit();
+        database.getQuery().delete(dataSets, "expense_category").commit();
         response.success(localization.getMessage("actionDelete.msg", dataSets.size()));
-    }
-
-    private void setStatus(DataSet source) {
-        String status = (String) source.get("status");
-        if ("Active".equals(status) || "Inactive".equals(status)) {
-            source.set("status", status);
-        } else {
-            source.set("status", "Active");
-        }
     }
 }

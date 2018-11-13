@@ -1,8 +1,0 @@
-{
-  "version": "1.0",
-  "language": "en",
-  "port": 9090,
-  "id":"TNMYNE01",
-  "name":"Nedungadu Textiles",
-  "database": "sample-db jdbc:postgresql://localhost/sample cG9zdGdyZXM= cG9zdGdyZXM="
-}

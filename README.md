@@ -71,3 +71,11 @@ IM07
 - >@HttpMethod annotation are used
 - >system-db and key sequence are added
 - >dcapture-db and dcapture-io changes are updated
+
+##### Nov-2018
+
+IM08
+
+- >dcapture-db and dcapture-io changes are updated
+- >Expense, Currency and Expense Category status removed
+- >Project concept removed

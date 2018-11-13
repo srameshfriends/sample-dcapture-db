@@ -1,6 +1,5 @@
 package sample.dcapture.db.luncher;
 
-import dcapture.io.BaseSettings;
 import dcapture.io.DispatcherListener;
 import dcapture.io.DispatcherServlet;
 import org.eclipse.jetty.server.Server;
@@ -14,14 +13,12 @@ import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 public class Main extends Registry {
-    private static final Logger logger = Logger.getLogger(Main.class.getName());
+    private static final Logger logger = Logger.getLogger("sample.dcapture.db");
 
-    @Override
-    protected void start(String... args) throws Exception {
-        InputStream stream = Main.class.getResourceAsStream("/logging.properties");
+    public Main() throws Exception {
+        InputStream stream = Main.class.getResourceAsStream("/config/logging.properties");
         LogManager.getLogManager().readConfiguration(stream);
-        BaseSettings settings = BaseSettings.load(Main.class);
-        Server server = new Server(settings.getPort());
+        Server server = new Server(getSettings().getPort());
         ServletHolder defaultServlet = new ServletHolder(DefaultServlet.class);
         ServletContextHandler servletContext = new ServletContextHandler(ServletContextHandler.SESSIONS);
         servletContext.setContextPath("/");
@@ -36,7 +33,7 @@ public class Main extends Registry {
         servletContext.setInitParameter("org.eclipse.jetty.servlet.Default.dirAllowed", "false");
         String url = server.getURI().toString();
         url = url.substring(0, url.length() - 1);
-        logger.severe(url + ":" + settings.getPort() + "/index.html");
+        logger.severe(url + ":" + getSettings().getPort() + "/index.html");
         logger.severe("Resource base : " + servletContext.getResourceBase());
         server.setHandler(servletContext);
         server.start();
@@ -44,13 +41,9 @@ public class Main extends Registry {
         logger.severe("*** READY TO USE ***");
     }
 
-    @Override
-    protected void stop(String... args) {
-    }
-
     public static void main(String... args) {
         try {
-            new Main().start(args);
+            new Main();
         } catch (Exception ex) {
             ex.printStackTrace();
             System.exit(1);

@@ -1,21 +1,26 @@
 package sample.dcapture.db.service;
 
 import dcapture.db.core.*;
-import dcapture.db.util.SqlParser;
 import dcapture.io.*;
-import sample.dcapture.db.api.KeySequence;
+import sample.dcapture.db.shared.KeySequence;
+import sample.dcapture.db.shared.SqlServletUtils;
 
 import javax.inject.Inject;
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import java.sql.SQLException;
+import javax.json.*;
+import javax.servlet.http.HttpServletResponse;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @HttpPath("/expense")
 public class ExpenseService {
+    private static final String TABLE = "expense", SESSION_USER = "session_user";
+    private static final String[] REQUIRED = new String[]{"code", "description", "expense_category", "currency", "amount"};
+    private static final String[] INSERT = new String[]{"expense_date", "code", "description", "expense_category", "currency", "amount", "created_by", "created_on"};
+    private static final String[] UPDATE = new String[]{"expense_date", "code", "description", "expense_category", "currency", "amount"};
+    private static final String[] CSV_EXPORT = new String[]{"expense_date", "code", "description", "category.code", "currency.code", "amount"};
+
     private SqlDatabase database;
     private Localization localization;
 
@@ -26,76 +31,105 @@ public class ExpenseService {
     }
 
     @HttpPath("/search")
-    @HttpMethod("POST")
-    public JsonObject search(JsonObject req) throws SQLException {
-        FormModel model = new FormModel(req);
-        final long start = model.getLongSafe("start");
-        int limit = model.getIntSafe("limit");
-        limit = 0 < limit ? limit : 20;
-        SelectQuery dataQuery = database.getSelectQuery().selectColumnSet("expense", "search");
-        WhereQuery whereQuery = dataQuery.whereQuery()
-                .likeColumnSet(model.getStringSafe("searchText"), "expense", "searchText");
-        dataQuery.append(whereQuery).append(" ORDER BY expense_date DESC, code DESC").limit(limit, start);
-        List<DataSet> dataList = dataQuery.getDataSetList();
-        //
-        SelectQuery totalQuery = database.getSelectQuery()
-                .append("SELECT COUNT(*) FROM ").addTable("expense").append(whereQuery);
-        int totalRecords = totalQuery.getInt();
-        SqlParser parser = new SqlParser(database);
-        JsonArray array = parser.getArray(dataList, "expense");
+    public JsonObject search(JsonRequest req) {
+        final long start = req.getLong("start");
+        final int limit = req.getInt("limit", 20);
+        SqlQuery query = database.getQuery();
+        SelectQuery select = query.selectFrom("expense ex",
+                "ex.id, ex.expense_date, ex.code, ex.description, ec.code, ec.name, cu.code, ex.amount");
+        select.join("expense_category ec ON ec.id=ex.expense_category").join("currency cu ON cu.id=ex.currency");
+        select.like(req.getString("searchText"), "expense", "ex.code", "ex.description", "ec.name");
+        select.orderBy("ex.expense_date DESC, ex.code DESC").limit(limit, start);
+        List<DataSet> dataList = select.getDataSetList();
         JsonObjectBuilder result = Json.createObjectBuilder();
-        result.add("expense", array);
+        result.add(TABLE, database.getParser().getJsonArray(dataList, TABLE));
         result.add("start", start);
         result.add("limit", limit);
-        result.add("totalRecords", totalRecords);
+        result.add("totalRecords", select.getRowCount());
         result.add("length", dataList.size());
         return result.build();
     }
 
     @HttpPath("/save")
     @HttpMethod("PUT")
-    public void save(JsonRequest req, JsonResponse response) throws SQLException {
-        SqlParser parser = new SqlParser(database);
-        List<DataSet> expenseList = parser.getDataSetList(req.getJsonArray(), "expense");
-        DataSet sessionUser = (DataSet) req.getSessionAttribute("session_user");
-        for (DataSet expense : expenseList) {
-            setDefaultValue(expense, sessionUser);
-            parser.hasRequiredValue(expense, "expense");
+    public void save(JsonRequest req, JsonResponse response) {
+        SqlParser parser = database.getParser();
+        List<DataSet> sourceList = parser.getDataSetList(req.getJsonArray(), TABLE);
+        List<DataSet> insertList = new ArrayList<>();
+        List<DataSet> updateList = new ArrayList<>();
+        KeySequence sequence = KeySequence.create(database.getQuery());
+        DataSet sessionUser = (DataSet) req.getSessionAttribute(SESSION_USER);
+        for (DataSet source : sourceList) {
+            setDefault(source, sessionUser, sequence);
+            parser.hasRequired(source, TABLE, REQUIRED);
+            if (0 == source.getLong("id")) {
+                insertList.add(source);
+            } else {
+                updateList.add(source);
+            }
         }
-        database.getTransaction().save(expenseList, "expense").commit();
-        response.success(localization.getMessage("actionSave.msg", expenseList.size()));
+        if (!insertList.isEmpty()) {
+            database.getQuery().insert(insertList, TABLE, INSERT);
+        }
+        if (!updateList.isEmpty()) {
+            database.getQuery().update(updateList, TABLE, UPDATE);
+        }
+        database.getQuery().commit();
+        response.success(localization.getMessage("actionSave.msg", sourceList.size()));
+    }
+
+    @HttpPath("/update")
+    @HttpMethod("PUT")
+    public void update(JsonRequest req, JsonResponse response) {
+        SqlParser parser = database.getParser();
+        List<DataSet> sourceList = parser.getDataSetList(req.getJsonArray(), TABLE);
+        DataSet sessionUser = (DataSet) req.getSessionAttribute(SESSION_USER);
+        SqlQuery query = database.getQuery();
+        KeySequence sequence = KeySequence.create(query);
+        for (DataSet source : sourceList) {
+            setDefault(source, sessionUser, sequence);
+            parser.hasRequired(source, TABLE, REQUIRED);
+        }
+        query.update(sourceList, TABLE, UPDATE).commit();
+        response.success(localization.getMessage("actionSave.msg", sourceList.size()));
     }
 
     @HttpPath("/delete")
     @HttpMethod("DELETE")
-    public void delete(JsonArray req, JsonResponse response) throws SQLException {
-        SqlParser parser = new SqlParser(database);
-        List<DataSet> dataSets = parser.getDataSetList(req, "expense");
-        database.getTransaction().delete(dataSets, "expense").commit();
+    public void delete(JsonArray req, JsonResponse response) {
+        List<DataSet> dataSets = database.getParser().getDataSetList(req, TABLE);
+        database.getQuery().delete(dataSets, TABLE).commit();
         response.success(localization.getMessage("actionDelete.msg", dataSets.size()));
     }
 
     @HttpPath("/reload")
-    @HttpMethod("POST")
-    public JsonObject load(JsonRequest req) throws SQLException {
-        SqlParser parser = new SqlParser(database);
-        DataSet expense = parser.getDataSet(req.getJsonObject(), "expense");
-        SelectQuery selectQuery = database.getSelectQuery().select("expense");
-        if (expense.isValidPId()) {
-            selectQuery.append(selectQuery.whereQuery().equalTo("id", expense.getPId()));
+    public JsonObject load(JsonRequest req) {
+        SqlParser parser = database.getParser();
+        DataSet expense = parser.getDataSet(req.getJsonObject(), TABLE);
+        SelectQuery selectQuery = database.getQuery().selectAll(TABLE);
+        if (0 < expense.getLong("id")) {
+            selectQuery.equalTo("id", expense.getLong("id"));
             expense = selectQuery.limit(1).getDataSet();
         } else if (!expense.getString("code", "").isEmpty()) {
-            selectQuery.append(selectQuery.whereQuery().equalTo("code", expense.getString("code")));
+            selectQuery.equalTo("code", expense.getString("code"));
             expense = selectQuery.limit(1).getDataSet();
         } else {
             expense.set("code", "AUTO");
             expense.set("expense_date", LocalDate.now());
-            expense.set("status", "Active");
         }
-        return parser.getObject(expense, "expense");
+        return parser.getJsonObject(expense, TABLE).build();
     }
 
-    private void setDefaultValue(DataSet source, DataSet sessionUser) throws SQLException {
+    @HttpPath("/export/csv")
+    public void exportCsv(HttpServletResponse res) {
+        SelectQuery selectQuery = database.getQuery().selectFrom("expense ex",
+                "ex.expense_date, ex.code, ex.description, ec.code, cu.code, ex.amount")
+                .join(" INNER JOIN currency cu ON cu.id = ex.currency INNER JOIN expense_category ec")
+                .join(" ON ec.id = ex.expense_category").orderBy(" ex.expense_date, ex.code");
+        SqlServletUtils.sendCsvAttachment(res, selectQuery, CSV_EXPORT, "expense");
+    }
+
+    private void setDefault(DataSet source, DataSet sessionUser, KeySequence sequence) {
         LocalDate localDate = source.getLocalDate("expense_date");
         if (localDate == null) {
             localDate = LocalDate.now();
@@ -103,18 +137,11 @@ public class ExpenseService {
         }
         String code = source.getString("code", "");
         if (code.isEmpty() || "AUTO".equals(code.toUpperCase())) {
-            KeySequence register = new KeySequence(database);
-            code = register.next("expense", localDate);
-            source.set("code", code);
+            sequence.generate(TABLE, source, "code", "expense_date");
         }
-        String status = (String) source.get("status");
-        if ("Active".equals(status) || "Inactive".equals(status)) {
-            source.set("status", status);
-        } else {
-            source.set("status", "Active");
-        }
-        if (0 == source.getPId()) {
+        if (0 == source.getLong("id")) {
             source.set("created_by", sessionUser);
+            source.set("created_on", LocalDateTime.now());
         }
     }
 }
