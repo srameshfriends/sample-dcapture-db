@@ -3,6 +3,32 @@ body {
     padding-top: 4.5rem;
 }
 
+@media (max-width: 767px) {
+    .navbar-brand {
+        text-align: center;
+    }
+    .navbar-toggler {
+        position: absolute;
+        top: 10px;
+    }
+    .navbar-collapse {
+        position: inherit;
+    }
+}
+
+.navbar-brand {
+    margin: 0 auto;
+}
+.navbar-collapse {
+    position: absolute;
+    top: 10px;
+}
+
+.btn-navbar {
+    background-color: #FFF0F5;
+    border:1px solid #e5d8dc;
+}
+
 .icon-blue {
     color: #7B68EE;
     font-size: 1em;
@@ -77,4 +103,13 @@ body {
 .borderless-lr {
   border-left: 0;
   border-right: 0;
+}
+
+.lookup-dialog {
+    min-width: 300px;
+    max-width: 600px;
+    min-height: 200px;
+    max-height: 400px;
+    background-color: #ffffff;
+    border:2px solid #9fcdff;
 }

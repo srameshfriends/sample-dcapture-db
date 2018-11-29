@@ -1,9 +1,12 @@
 package sample.dcapture.db.shared;
 
 import dcapture.db.core.DataSet;
+import dcapture.db.core.SqlContext;
 import dcapture.db.core.SqlDatabase;
 import dcapture.db.h2.H2Database;
+import dcapture.db.h2.H2Tool;
 import dcapture.db.postgres.PgDatabase;
+import dcapture.db.postgres.PgTool;
 import dcapture.io.AppSettings;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -16,7 +19,9 @@ import javax.json.JsonReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 import java.util.logging.Logger;
 
 public class DataUtils {
@@ -52,6 +57,7 @@ public class DataUtils {
                 columnSets.add(reader.readObject());
             }
         }
+        SqlContext.SqlContextFactory factory = new SqlContext.SqlContextFactory();
         Properties prop = new Properties();
         prop.put("url", url);
         prop.put("user", AppSettings.decode(user));
@@ -59,13 +65,29 @@ public class DataUtils {
         prop.put("tables", tables);
         prop.put("columnSets", columnSets);
         if (url.toLowerCase().contains("postgresql")) {
-            PgDatabase.PgDatabaseBuilder builder = new PgDatabase.PgDatabaseBuilder();
-            return builder.build(prop);
+            prop.put("driver", "org.postgresql.Driver");
+            return new PgDatabase("org.postgresql.Driver", factory.getPoolingDataSource(prop));
         } else if (url.toLowerCase().contains("h2")) {
-            H2Database.H2DatabaseBuilder builder = new H2Database.H2DatabaseBuilder();
-            return builder.build(prop);
+            prop.put("driver", "org.h2.Driver");
+            return new H2Database("org.postgresql.Driver", factory.getPoolingDataSource(prop));
         } else {
             throw new NullPointerException("Database url driver not supported : " + url);
+        }
+    }
+
+    public static void executeForwardQueries(SqlDatabase database) {
+        if (database.getDriver().contains("postgresql")) {
+            database.transact(query -> {
+                new PgTool(query).executeForwardQueries();
+                return true;
+            });
+        } else if (database.getDriver().contains("h2")) {
+            database.transact(query -> {
+                new H2Tool(query).executeForwardQueries();
+                return true;
+            });
+        } else {
+            throw new NullPointerException("Database url driver not supported : " + database.getDriver());
         }
     }
 
@@ -77,7 +99,7 @@ public class DataUtils {
         }
         logger.severe("Loading App Data : " + DataUtils.class.getResource(path));
         InputStream stream = DataUtils.class.getResourceAsStream(path);
-        try (CSVParser parser = CSVParser.parse(stream, StandardCharsets.UTF_8, CSVFormat.DEFAULT)){
+        try (CSVParser parser = CSVParser.parse(stream, StandardCharsets.UTF_8, CSVFormat.DEFAULT)) {
             List<CSVRecord> recordList = parser.getRecords();
             for (CSVRecord record : recordList) {
                 DataSet source = new DataSet();

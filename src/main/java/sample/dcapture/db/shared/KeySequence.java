@@ -22,17 +22,21 @@ public class KeySequence {
         yearlyPattern = "yy";
     }
 
-    public static synchronized KeySequence create(SqlQuery query) {
+    public static KeySequence create(SqlQuery query) {
         return new KeySequence(query);
     }
 
-    public void generate(final String name, DataSet document, String keyColumn, String dateColumn) {
-        SelectQuery sequenceQry = query.selectAll(TABLE).equalTo("name", name).limit(1).forUpdate();
-        if (sequenceQry == null) {
+    public synchronized void generate(final String name, DataSet document, String keyColumn) {
+        generate(name, document, keyColumn, null);
+    }
+
+    public synchronized void generate(final String name, DataSet document, String keyColumn, String dateColumn) {
+        SelectBuilder select = query.selectAll(TABLE).where("name", name).limit(1).forUpdate();
+        DataSet sequence = query.getDataSet(select);
+        if (sequence == null) {
             throw new NullPointerException("Key sequence not created for " + name);
         }
-        LocalDate localDate = document.getLocalDate(dateColumn);
-        DataSet sequence = sequenceQry.getDataSet();
+        LocalDate localDate = dateColumn == null ? null : document.getLocalDate(dateColumn);
         DataSet sequenceLine = getOrInsertSequenceLine(name, sequence, localDate, document);
         String prefix = sequenceLine.getString("prefix", "");
         String pattern = sequenceLine.getString("pattern", "");
@@ -40,16 +44,17 @@ public class KeySequence {
         final int index = sequenceLine.getInt("last_index") + 1;
         final String key = prefix + text + index;
         document.set(keyColumn, key);
-        UpdateQuery updateQuery = query.update(TABLE_LINE).set("last_index", index).set("last_key", key);
-        updateQuery.equalTo("id", sequenceLine.getLong("id"));
+        UpdateBuilder update = query.updateBuilder(TABLE_LINE).set("last_index", index).set("last_key", key)
+                .where("id", sequenceLine.getLong("id"));
+        query.execute(update);
     }
 
-    public void generate(final String name, List<DataSet> documentList, String keyColumn, String dateColumn) {
-        SelectQuery sequenceQry = query.selectAll(TABLE).equalTo("name", name).limit(1).forUpdate();
-        if (sequenceQry == null) {
+    public synchronized void generate(final String name, List<DataSet> documentList, String keyColumn, String dateColumn) {
+        SelectBuilder select = query.selectAll(TABLE).where("name", name).limit(1).forUpdate();
+        DataSet sequence = query.getDataSet(select);
+        if (sequence == null) {
             throw new NullPointerException("Key sequence not created for " + name);
         }
-        DataSet sequence = sequenceQry.getDataSet();
         int index;
         String key;
         for (DataSet document : documentList) {
@@ -60,9 +65,11 @@ public class KeySequence {
             String text = localDate == null ? "" : DateTimeFormatter.ofPattern(pattern).format(localDate);
             index = sequenceLine.getInt("last_index") + 1;
             key = prefix + text + index;
+            System.out.println("Last Index : " + index + " \t Last Key : " + key);
             document.set(keyColumn, key);
-            UpdateQuery updateQuery = query.update(TABLE_LINE).set("last_index", index).set("last_key", key);
-            updateQuery.equalTo("id", sequenceLine.getLong("id"));
+            UpdateBuilder update = query.updateBuilder(TABLE_LINE).set("last_index", index).set("last_key", key)
+                    .where("id", sequenceLine.getLong("id"));
+            query.execute(update);
         }
     }
 
@@ -72,44 +79,40 @@ public class KeySequence {
             throw new NullPointerException("Key sequence (Name: " + name
                     + ",type: " + type + ") date should not be null [" + forShowError + "]");
         }
-        SelectQuery lineQry = query.selectAll(TABLE_LINE).equalTo(TABLE, sequence.getLong("id")).limit(1).forUpdate();
-        DataSet sequenceLine = lineQry.getDataSet();
+        SelectBuilder lineBuilder = query.selectAll(TABLE_LINE).where(TABLE, sequence.getLong("id")).limit(1).forUpdate();
+        DataSet sequenceLine = query.getDataSet(lineBuilder);
         if (sequenceLine == null) {
             sequenceLine = new DataSet();
             sequenceLine.set(TABLE, sequence.get("id"));
             sequenceLine.set("prefix", sequence.get("prefix"));
             int year = 0, month = 0, day = 0;
-            InsertQuery insertQuery = query.insert(TABLE_LINE).set(TABLE, sequence.get("id"))
-                    .set("prefix", sequence.get("prefix"));
-            if (NO_RESET.equals(type)) {
-                insertQuery.set("pattern", "").set("year", 0).set("month", 0).set("day", 0)
-                        .set("last_index", 0).set("last_key", "");
-            } else if (YEARLY.equals(type)) {
-                insertQuery.set("pattern", yearlyPattern).set("year", localDate.getYear()).set("month", 0).set("day", 0)
-                        .set("last_index", 0).set("last_key", "");
+            String pattern = "";
+            if (YEARLY.equals(type)) {
+                pattern = yearlyPattern;
                 year = localDate.getYear();
             } else if (MONTHLY.equals(type)) {
-                insertQuery.set("pattern", monthlyPattern).set("year", localDate.getYear())
-                        .set("month", localDate.getMonthValue()).set("day", 0).set("last_index", 0).set("last_key", "");
+                pattern = monthlyPattern;
                 year = localDate.getYear();
                 month = localDate.getMonthValue();
-            } else if (localDate != null) {
-                insertQuery.set("pattern", dailyPattern).set("year", localDate.getYear())
-                        .set("month", localDate.getMonthValue()).set("day", localDate.getDayOfMonth())
-                        .set("last_index", 0).set("last_key", "");
+            } else if (DAILY.equals(type)) {
+                pattern = dailyPattern;
                 year = localDate.getYear();
                 month = localDate.getMonthValue();
                 day = localDate.getDayOfMonth();
-            } else {
+            } else if (!NO_RESET.equals(type)) {
                 throw new NullPointerException("Key sequence (Name: " + name
                         + ", Unknown Type  (" + type + ") : " + forShowError + "");
             }
-            sequenceLine.set("year", year).set("month", month).set("day", day);
+            InsertBuilder insert = query.insertBuilder(TABLE_LINE).set(TABLE, sequence.get("id"))
+                    .set("prefix", sequence.get("prefix")).set("pattern", pattern)
+                    .set("year", year).set("month", month).set("day", day)
+                    .set("last_index", 0).set("last_key", "");
+            query.execute(insert);
         }
         return sequenceLine;
     }
 
-    public void save(DataSet source) {
+    public synchronized void save(DataSet source) {
         String name = source.getString("name", null), type = source.getString("type", null);
         String prefix = source.getString("prefix");
         if (name == null || type == null) {
@@ -122,8 +125,8 @@ public class KeySequence {
             throw new NullPointerException("Key Sequence type not matched [MONTHLY, DAILY, YEARLY, NO_RESET] : " + type);
         }
         prefix = prefix == null ? "" : prefix.trim();
-        SelectQuery selectQuery = query.selectAll(TABLE).equalTo("name", name).limit(1);
-        DataSet sequence = selectQuery.getDataSet();
+        SelectBuilder select = query.selectAll(TABLE).where("name", name).limit(1);
+        DataSet sequence = query.getDataSet(select);
         if (sequence != null) {
             sequence.set("type", type);
             sequence.set("prefix", prefix);
@@ -136,7 +139,7 @@ public class KeySequence {
         }
     }
 
-    public void save(List<DataSet> sourceList) {
+    public synchronized void save(List<DataSet> sourceList) {
         ArrayList<DataSet> insertList = new ArrayList<>();
         ArrayList<DataSet> updateList = new ArrayList<>();
         for (DataSet source : sourceList) {
@@ -152,8 +155,8 @@ public class KeySequence {
                 throw new NullPointerException("Key Sequence type not matched [MONTHLY, DAILY, YEARLY, NO_RESET] : " + type);
             }
             prefix = prefix == null ? "" : prefix.trim();
-            SelectQuery selectQuery = query.selectAll(TABLE).equalTo("name", name).limit(1);
-            DataSet sequence = selectQuery.getDataSet();
+            SelectBuilder select = query.selectAll(TABLE).where("name", name).limit(1);
+            DataSet sequence = query.getDataSet(select);
             if (sequence != null) {
                 if (!sequence.equals("type", type) || !sequence.equals("prefix", prefix)) {
                     sequence.unlock();

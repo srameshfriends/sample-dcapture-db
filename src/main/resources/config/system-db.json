@@ -1,5 +1,25 @@
 [
   {
+    "name": "locale",
+    "columns": [
+      {
+        "name": "id",
+        "primary": true
+      },
+      {
+        "name": "language",
+        "length": 8
+      },
+      {
+        "name": "code",
+        "length": 256
+      },
+      {
+        "name": "name"
+      }
+    ]
+  },
+  {
     "name": "key_sequence",
     "columns": [
       {

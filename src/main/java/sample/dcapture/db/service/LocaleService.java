@@ -1,6 +1,5 @@
 package sample.dcapture.db.service;
 
-import dcapture.io.HttpMethod;
 import dcapture.io.HttpPath;
 import dcapture.io.Localization;
 

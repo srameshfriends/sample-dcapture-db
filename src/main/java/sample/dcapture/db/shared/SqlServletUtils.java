@@ -25,9 +25,9 @@ public abstract class SqlServletUtils {
     private static DateTimeFormatter dateTimeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm");
     private static DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("hh:mm");
 
-    public static List<DataSet> getDataSetsFromCsv(HttpServletRequest req, SqlDatabase database, String tableName)
+    public static List<DataSet> getDataSetsFromCsv(HttpServletRequest req, String tableName)
             throws IOException {
-        SqlTable sqlTable = database.getSqlTable(tableName);
+        SqlTable sqlTable = SqlContext.getSqlTable(tableName);
         CSVParser parser = CSVParser.parse(req.getInputStream(), StandardCharsets.UTF_8, CSVFormat.DEFAULT.withHeader());
         Map<String, Integer> headerMap = parser.getHeaderMap();
         List<CSVRecord> recordList = parser.getRecords();
@@ -127,48 +127,49 @@ public abstract class SqlServletUtils {
         return name + suffix;
     }
 
-    public static void sendCsvAttachment(HttpServletResponse resp, SelectQuery query, String[] header, String name) {
+    public static int sendCsvAttachment(HttpServletResponse resp, String[] header, String name, List<Object[]> sources) {
         resp.setContentType("text/csv");
         resp.setHeader("Content-disposition", "attachment; filename=" + getFileName(name, "csv"));
         try (CSVPrinter printer = new CSVPrinter(resp.getWriter(), CSVFormat.DEFAULT.withHeader(header))) {
-            for (Object[] values : query.getValuesList()) {
+            for (Object[] values : sources) {
                 printer.printRecord(values);
             }
             printer.flush();
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
+        return sources.size();
     }
 
-    public static void sendCsvAttachment(HttpServletResponse resp, SelectQuery query, String name) {
+    public static int sendCsvAttachment(HttpServletResponse resp, String name, SqlResult result) {
         resp.setContentType("text/csv");
         resp.setHeader("Content-disposition", "attachment; filename=" + getFileName(name, "csv"));
-        SqlResult result = query.getResult();
         List<String> header = new ArrayList<>();
         for (SqlMetaData smd : result.getMetaDataList()) {
             header.add(smd.getTable() + "." + smd.getColumn());
         }
         String[] headerArray = header.toArray(new String[0]);
+        int count = result.getObjectsList().size();
         try (CSVPrinter printer = new CSVPrinter(resp.getWriter(), CSVFormat.DEFAULT.withHeader(headerArray))) {
-            for (Object[] values : result.getDataList()) {
+            for (Object[] values : result.getObjectsList()) {
                 printer.printRecord(values);
             }
             printer.flush();
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
+        return count;
     }
 
-    public static void sendCsv(HttpServletResponse resp, SelectQuery query) {
+    public static void sendCsv(HttpServletResponse resp, SqlResult result) {
         resp.setContentType("text/csv");
-        SqlResult result = query.getResult();
         List<String> header = new ArrayList<>();
         for (SqlMetaData smd : result.getMetaDataList()) {
             header.add(smd.getColumn());
         }
         String[] headerArray = header.toArray(new String[0]);
         try (CSVPrinter printer = new CSVPrinter(resp.getWriter(), CSVFormat.DEFAULT.withHeader(headerArray))) {
-            for (Object[] values : result.getDataList()) {
+            for (Object[] values : result.getObjectsList()) {
                 printer.printRecord(values);
             }
             printer.flush();

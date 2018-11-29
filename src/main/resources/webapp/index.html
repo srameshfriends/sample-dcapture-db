@@ -13,62 +13,71 @@
     <script src="js/bootstrap.bundle.js"></script>
     <script src="js/fontawesome-icon-5.2.0.js"></script>
     <script src="js/papaparse.min.js"></script>
+    <script src="js/core.js"></script>
     <script src="js/csv-table.js"></script>
     <script src="js/data-table.js"></script>
+    <script src="js/lookup-fields.js"></script>
     <script src="js/form-fields.js"></script>
-    <script src="js/core.js"></script>
-    <script src="js/index.js"></script>
 </head>
 <body>
-<nav id="appsNavigation" class="navbar fixed-top navbar-expand-lg navbar-light bg-light no-gutters">
-    <div class="col-sm">
-        <div class="dropdown form-inline">
-            <button class="btn btn-outline-light" type="button" data-toggle="dropdown">
-                <i class="fas fa-bars icon-blue"></i></button>
-            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                <button class="dropdown-item" id="menuItemExpense" data-locale="expense-list.title"></button>
-                <button class="dropdown-item" id="menuItemExpenseCategory"
-                        data-locale="expense-category.title"></button>
-                <button class="dropdown-item" id="menuItemCurrency" data-locale="currency.title"></button>
-                <button class="dropdown-item" id="menuItemUsers" data-locale="user-list.title"></button>
+<header class="container-fluid fixed-top bg-light">
+    <div class="row" id="appsNavigation">
+        <div class="col text-left">
+            <div class="dropdown">
+                <button aria-expanded="false" aria-haspopup="true" class="btn mt-1 btn-navbar dropdown-toggle"
+                        data-toggle="dropdown" id="page-view-id" type="button">
+                </button>
+                <div aria-labelledby="page-view-id" class="dropdown-menu">
+                    <button class="dropdown-item" data-locale="expense-list.title" id="view-expense-list"
+                            type="button"></button>
+                    <button class="dropdown-item" data-locale="currency.title" id="view-currency"
+                            type="button"></button>
+                    <button class="dropdown-item" data-locale="expense-category.title" id="view-expense-category"
+                            type="button"></button>
+                    <button class="dropdown-item" data-locale="user-list.title" id="view-user-list"
+                            type="button"></button>
+                </div>
             </div>
-            <label id="appsName" class="text-bold text-dark mr-2 my-2 my-sm-0"></label>
+        </div>
+        <div class="col text-center">
+            <label class="nav-link text-bold text-primary text-nowrap" id="appsName"></label>
+        </div>
+        <div class="col text-right">
+            <div class="dropdown">
+                <button aria-expanded="false" aria-haspopup="true" class="btn mt-1 btn-navbar dropdown-toggle"
+                        data-toggle="dropdown" id="appsUserId" type="button">
+                </button>
+                <div aria-labelledby="appsUserId" class="dropdown-menu">
+                    <button class="dropdown-item" data-locale="signOut" id="appsSignOut" type="button"></button>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-sm">
-        <h3 id="view-title" class="text-bold text-primary"></h3>
-    </div>
-    <div class="col-sm">
-        <div class="form-inline my-2 my-lg-0 float-right">
-            <label id="appsUser" class="text-bold text-success mr-2 my-2 my-sm-0"></label>
-            <span class="ml-4"></span>
-            <label id="appsUserId" class="text-bold text-info mr-2 my-2 my-sm-0"></label>
-            <button id="appsSignOut" data-locale="signOut" class="btn btn-outline-success my-2 my-sm-0" type="button">
-            </button>
+    <div class="row justify-content-center" id='messageDialog'>
+        <div class="alert-warning p-2" style='max-width: 120rem'>
+            <span id="messageDialog-msg"></span>
+            <button aria-label='Close' class='close' id="messageDialog-close" type='button'>
+                <span aria-hidden='true' class="ml-4">&times;</span></button>
         </div>
     </div>
-</nav>
-<nav id='undoDialog' class='fixed-top' style='max-width: 120rem'>
-    <div class='col-6 alert-warning m-auto p-2'>
-        <span id="undoDialog-msg"></span>
-        <button id="undoDialog-btn" data-locale="undo" class='btn btn-link ml-2'></button>
-        <button id="undoDialog-close" type='button' class='close' aria-label='Close'><span
-                aria-hidden='true'>&times;</span></button>
+    <div class="row justify-content-center">
+        <div class="alert-warning p-2" id="undoDialog" style='max-width: 120rem'>
+            <span id="undoDialog-msg"></span>
+            <button class='btn btn-link ml-2' data-locale="undo" id="undoDialog-btn"></button>
+            <button aria-label='Close' class='close' id="undoDialog-close" type='button'>
+                <span aria-hidden='true' class="ml-4">&times;</span></button>
+        </div>
     </div>
-</nav>
-<nav id='messageDialog' class='fixed-top' style='max-width: 120rem'>
-    <div class='col-6 alert-warning m-auto p-2'>
-        <span id="messageDialog-msg"></span>
-        <button id="messageDialog-close" type='button' class='close' aria-label='Close'>
-            <span aria-hidden='true'>&times;</span></button>
-    </div>
-</nav>
-<aside id="page-dialog"></aside>
+</header>
 <main id="mainView">
 </main>
 
 <script>
     $(document).ready(function () {
+        PageManager.addMenuItem("view-expense-list", "view/expense-list.html");
+        PageManager.addMenuItem("view-expense-category", "view/expense-category.html");
+        PageManager.addMenuItem("view-currency", "view/currency.html");
+        PageManager.addMenuItem("view-user-list", "view/user-list.html");
         PageManager.start();
     });
 </script>

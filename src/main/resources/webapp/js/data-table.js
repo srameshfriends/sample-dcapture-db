@@ -109,19 +109,21 @@ function DataTable(model) {
         return cell;
     };
     self.addReferenceCell = function (row, name, data) {
-        let idx, txt, col, colName, cell = $("<td></td>"), values = [], obj = data[name];
-        if (typeof obj === "object") {
-            col = self.getColumnByName(name);
-            for (idx = 0; idx < col.columns.length; idx++) {
-                colName = col.columns[idx];
+        let cell = $("<td></td>"), obj = data[name];
+        row.append(cell);
+        if(typeof obj === "undefined" || obj === null || typeof obj !== "object") {
+            return cell;
+        }
+        let idx, txt, col, colName, values = [];
+        col = self.getColumnByName(name);
+        for (idx = 0; idx < col.columns.length; idx++) {
+            colName = col.columns[idx];
+            if(obj.hasOwnProperty(colName)) {
                 txt = obj[colName];
-                if (typeof txt !== "undefined") {
-                    values.push(txt);
-                }
+                values.push(txt);
             }
         }
-        cell.text(values.join(" \t "));
-        row.append(cell);
+        cell.text(values.join(" - "));
         return cell;
     };
     self.addCell = function (row, name, data) {

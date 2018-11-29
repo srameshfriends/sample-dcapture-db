@@ -19,37 +19,84 @@
                 </div>
                 <div class="form-group">
                     <label data-locale="expense.code" class="form-control-label"></label>
-                    <input type="text" data-id="expense.code" data-type="text" class="form-control">
+                    <input class="form-control" data-id="expense.code" data-type="text" readonly type="text">
                 </div>
                 <div class="form-group">
                     <label data-locale="expense.description" class="form-control-label"></label>
                     <textarea data-id="expense.description" data-type="text" cols="4" class="form-control">
                                 </textarea>
                 </div>
+
+
                 <div class="form-group">
-                    <button id="expenseCategory" data-locale="expense.expense_category" class="btn btn-link pl-0"></button>
-                    <div class="input-group">
-                        <input class="form-control" data-id="expense.expense_category" data-type="reference">
+                    <button class="btn btn-link pl-0" data-locale="expense.expense_category"
+                            id="expenseCategoryLink"></button>
+                    <div class="input-group dropdown">
+                        <input aria-expanded="false" aria-haspopup="true" autocomplete="off"
+                               class="form-control dropdown-toggle" data-id="expense.expense_category"
+                               data-lookup="expense_category.input"
+                               data-toggle="dropdown" data-type="reference" id="expense-category-field" type="text">
                         <div class="input-group-append">
-                            <button data-lookup="expense.expense_category"
-                                    class="input-group bg-transparent border" type="button">
+                            <button class="input-group bg-transparent border" data-lookup="expense_category.button"
+                                    type="button">
                                 <i class="fas fa-angle-down" style="width: 24px"></i>
                             </button>
                         </div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <button id="currency" data-locale="expense.currency" class="btn btn-link pl-0"></button>
-                    <div class="input-group">
-                        <input class="form-control " data-id="expense.currency" data-type="reference">
-                        <div class="input-group-append">
-                            <button data-lookup="expense.currency"
-                                    class="input-group bg-transparent border" type="button">
-                                <i class="fas fa-angle-down" style="width: 24px"></i>
-                            </button>
+                        <div aria-labelledby="expense-category-field" class="dropdown-menu lookup-dialog"
+                             data-lookup="expense_category.dialog">
+                            <input class="form-control" data-lookup="expense_category.search" type="text">
+                            <button class="btn btn-link" data-locale="clearSelected"
+                                    data-lookup="expense_category.clear"></button>
+                            <table class="table table-sm table-hover" data-lookup="expense_category.table">
+                            </table>
+                            <ul class="pagination ml-2">
+                                <li class="page-item">
+                                    <button class="page-link" data-lookup="expense_category.previous">«</button>
+                                </li>
+                                <li class="page-item"><label class="page-link"
+                                                             data-lookup="expense_category.info">-</label></li>
+                                <li class="page-item">
+                                    <button class="page-link" data-lookup="expense_category.next">»</button>
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </div>
+
+                <div class="form-group">
+                    <button class="btn btn-link pl-0" data-locale="expense.currency" id="currencyLink"></button>
+                    <div class="input-group dropdown">
+                        <input aria-expanded="false" aria-haspopup="true" autocomplete="off"
+                               class="form-control dropdown-toggle" data-id="expense.currency"
+                               data-lookup="currency.input"
+                               data-toggle="dropdown" data-type="reference" id="expense-currency-field" type="text">
+                        <div class="input-group-append">
+                            <button class="input-group bg-transparent border" data-lookup="currency.button"
+                                    type="button">
+                                <i class="fas fa-angle-down" style="width: 24px"></i>
+                            </button>
+                        </div>
+                        <div aria-labelledby="expense-currency-field" class="dropdown-menu lookup-dialog"
+                             data-lookup="currency.dialog">
+                            <input class="form-control" data-lookup="currency.search">
+                            <button class="btn btn-link" data-locale="clearSelected"
+                                    data-lookup="currency.clear"></button>
+                            <table class="table table-sm table-hover" data-lookup="currency.table">
+                            </table>
+                            <ul class="pagination ml-2">
+                                <li class="page-item">
+                                    <button class="page-link" data-lookup="currency.previous">«</button>
+                                </li>
+                                <li class="page-item"><label class="page-link" data-lookup="currency.info">-</label>
+                                </li>
+                                <li class="page-item">
+                                    <button class="page-link" data-lookup="currency.next">»</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label data-locale="expense.amount" class="form-control-label"></label>
                     <input data-id="expense.amount" data-type="double" class="form-control">
@@ -81,11 +128,11 @@
             evt.preventDefault();
             PageManager.show("view/expense-list.html");
         });
-        $("#expenseCategory").on("click", function (evt) {
+        $("#expenseCategoryLink").on("click", function (evt) {
             evt.preventDefault();
             PageManager.show("view/expense-category.html");
         });
-        $("#currency").on("click", function (evt) {
+        $("#currencyLink").on("click", function (evt) {
             evt.preventDefault();
             PageManager.show("view/currency.html");
         });

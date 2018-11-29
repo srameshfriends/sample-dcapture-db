@@ -1,6 +1,8 @@
 package sample.dcapture.db.service;
 
-import dcapture.db.core.*;
+import dcapture.db.core.DataSet;
+import dcapture.db.core.SelectBuilder;
+import dcapture.db.core.SqlDatabase;
 import dcapture.io.*;
 
 import javax.inject.Inject;
@@ -32,23 +34,24 @@ public class SessionService {
     public JsonObject validate(JsonRequest request) {
         if (request.getSession(false) == null ||
                 request.getSession(false).getAttribute(USER_TABLE) == null) {
-            return toJsonObject("", "", "", "", false);
+            return getObject("", "", "", "", false);
+        } else {
+            DataSet appsUser = (DataSet) request.getSession(false).getAttribute(USER_TABLE);
+            String email = appsUser.getString("email", "");
+            String name = appsUser.getString("name", "");
+            String id = request.getSession(false).getId();
+            return getObject(id, name, email, "", true);
         }
-        DataSet appsUser = (DataSet) request.getSession(false).getAttribute(USER_TABLE);
-        String email = appsUser.getString("email", "");
-        String name = appsUser.getString("name", "");
-        String id = request.getSession(false).getId();
-        return toJsonObject(id, name, email, "", true);
     }
 
     @HttpPath(value = "/clear", secured = false)
     @HttpMethod("PUT")
-    public void clearSession(JsonRequest request, JsonResponse response) {
+    public JsonResult clearSession(JsonRequest request) {
         HttpSession session = request.getSession(false);
         if (session != null) {
             session.invalidate();
         }
-        response.success(locale.get("clearSession.msg"));
+        return JsonResult.send(locale.get("clearSession.msg"));
     }
 
     @HttpPath(value = "/reset", secured = false)
@@ -61,57 +64,55 @@ public class SessionService {
 
     @HttpPath(value = "/authorise1", secured = false)
     public JsonObject authorise1(JsonRequest request) {
-        String email = request.getString("email");
-        if (notValid(email)) {
-            throw new IllegalArgumentException(locale.get("apps_user.email.invalid"));
-        }
-        SqlQuery query = database.getQuery();
-        SelectQuery selectQry = query.selectFrom(USER_TABLE, "email").equalTo("email", email);
-        String oldEmail = selectQry.getString();
-        if (oldEmail == null || !oldEmail.equals(email)) {
-            throw new IllegalArgumentException(locale.get("apps_user.email.invalid"));
-        }
-        query.delete(SESSION_BATCH_TABLE).equalTo("email", email);
-        String code = UUID.randomUUID().toString();
-        InsertQuery insertQuery = query.insert(SESSION_BATCH_TABLE).set("email", email).set("code", code);
-        insertQuery.set("created_on", LocalDateTime.now()).set("client", getClientInfo(request));
-        query.commit();
-        return toJsonObject("", "", email, code, false);
+        return database.transact(query -> {
+            String email = request.getString("email");
+            if (notValid(email)) {
+                throw new IllegalArgumentException(locale.get("apps_user.email.invalid"));
+            }
+            email = email.trim().toLowerCase();
+            SelectBuilder select = query.selectFrom(USER_TABLE, "email").where("email", email);
+            String oldEmail = query.getString(select);
+            if (oldEmail == null || !email.equals(oldEmail.toLowerCase())) {
+                throw new IllegalArgumentException(locale.get("apps_user.email.invalid"));
+            }
+            query.execute(query.deleteBuilder(SESSION_BATCH_TABLE).where("email", email));
+            final String code = UUID.randomUUID().toString();
+            query.execute(query.insertBuilder(SESSION_BATCH_TABLE).set("email", email).set("code", code)
+                    .set("created_on", LocalDateTime.now()).set("client", getClientInfo(request)));
+            return getObject("", "", email, code, false);
+        });
     }
 
     @HttpPath(value = "/authorise2", secured = false)
-    public void authorise2(JsonRequest request, JsonResponse response) {
+    public JsonObject authorise2(JsonRequest request) {
         String code = request.getString("code", "");
         String pass = request.getString("pass", "");
         if (notValid(code)) {
-            response.sendObject(toJsonObject("", "", "", "", false));
-            return;
+            return getObject("", "", "", "", false);
+        } else if (notValid(pass)) {
+            throw new IllegalArgumentException(locale.get("userOrPasswordNotValid"));
         }
-        if (notValid(pass)) {
-            response.error(locale.get("userOrPasswordNotValid"));
-            return;
-        }
-        SqlQuery query = database.getQuery();
-        String email = query.selectFrom(SESSION_BATCH_TABLE, "email").equalTo("code", code).limit(1).getString();
-        if (email == null) {
-            response.sendObject(toJsonObject("", "", "", "", false));
-            return;
-        }
-        SelectQuery userQuery = query.selectAll(USER_TABLE).equalTo("email", email).and("password", pass).limit(1);
-        DataSet appsUser = userQuery.getDataSet();
-        if (appsUser == null || !pass.equals(appsUser.getString("password", ""))) {
-            response.error(locale.get("userOrPasswordNotValid"));
-            return;
-        }
-        query.delete(SESSION_BATCH_TABLE).equalTo("email", email);
-        query.commit();
-        HttpSession session = request.getSession(true);
-        session.setAttribute(SESSION_USER, appsUser);
-        String userName = appsUser.getString("name", "");
-        response.sendObject(toJsonObject(session.getId(), userName, email, "", true));
+        return database.transact(query -> {
+            SelectBuilder select = query.selectFrom(SESSION_BATCH_TABLE, "email")
+                    .where("code", code).limit(1);
+            String email = query.getString(select);
+            if (email == null) {
+                return getObject("", "", "", "", false);
+            }
+            select = query.selectAll(USER_TABLE).where("email", email).and("password", pass).limit(1);
+            DataSet appsUser = query.getDataSet(select);
+            if (appsUser == null || !pass.equals(appsUser.getString("password", ""))) {
+                throw new IllegalArgumentException(locale.get("userOrPasswordNotValid"));
+            }
+            query.execute(query.deleteBuilder(SESSION_BATCH_TABLE).where("email", email));
+            HttpSession session = request.getSession(true);
+            session.setAttribute(SESSION_USER, appsUser);
+            String userName = appsUser.getString("name", "");
+            return getObject(session.getId(), userName, email, "", true);
+        });
     }
 
-    private JsonObject toJsonObject(String sessionId, String name, String email, String code, boolean authenticated) {
+    private JsonObject getObject(String sessionId, String name, String email, String code, boolean authenticated) {
         JsonObjectBuilder builder = Json.createObjectBuilder();
         builder.add("email", email);
         builder.add("userName", name);

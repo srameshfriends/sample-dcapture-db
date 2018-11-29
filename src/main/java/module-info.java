@@ -2,6 +2,7 @@ module sample.dcapture.db {
     requires dcapture.db;
     requires dcapture.io;
     requires commons.pool2;
+    requires commons.dbcp2;
     requires java.json;
     requires java.sql;
     requires javax.servlet.api;

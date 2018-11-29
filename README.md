@@ -79,3 +79,9 @@ IM08
 - >dcapture-db and dcapture-io changes are updated
 - >Expense, Currency and Expense Category status removed
 - >Project concept removed
+
+IM09
+
+- >Default values added into appdata directory
+- >Lookup field ui improved
+- >dcapture-db and dcapture-io changes are updated

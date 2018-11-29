@@ -1,6 +1,9 @@
 package sample.dcapture.db.service;
 
-import dcapture.db.core.*;
+import dcapture.db.core.DataSet;
+import dcapture.db.core.SelectBuilder;
+import dcapture.db.core.SqlDatabase;
+import dcapture.db.core.SqlParser;
 import dcapture.io.*;
 
 import javax.inject.Inject;
@@ -19,31 +22,35 @@ public class AppsUserService {
     private static final String[] UPDATE = new String[]{"name", "status"};
     private static final String[] CREATE_USER = new String[]{"email", "name", "password", "status"};
     private static final String[] SEARCH = new String[]{"email", "name", "status"};
+    private static final String[] CODE_NAME = new String[]{"code", "name"};
     private SqlDatabase database;
     private Localization locale;
+    private SqlParser parser;
 
     @Inject
-    public AppsUserService(Localization locale, SqlDatabase database) {
+    public AppsUserService(Localization locale, SqlDatabase database, SqlParser parser) {
         this.locale = locale;
         this.database = database;
+        this.parser = parser;
     }
 
     @HttpPath("/search")
     public JsonObject search(JsonRequest req) {
-        SqlQuery query = database.getQuery();
-        long start = req.getLong("start");
-        int limit = req.getInt("limit", 20);
-        SelectQuery selectQuery = query.selectFrom(TABLE, "email", "name", "status");
-        selectQuery.like(req.getString("searchText"), "email", "name");
-        selectQuery.orderBy(" email, name").limit(limit, start);
-        List<DataSet> dataList = selectQuery.getDataSetList();
-        JsonObjectBuilder builder = Json.createObjectBuilder();
-        builder.add(TABLE, database.getParser().getJsonArray(dataList, TABLE, SEARCH));
-        builder.add("start", start);
-        builder.add("limit", limit);
-        builder.add("totalRecords", selectQuery.getRowCount());
-        builder.add("length", dataList.size());
-        return builder.build();
+        return database.transact(query -> {
+            long start = req.getLong("start");
+            int limit = req.getInt("limit", 20);
+            SelectBuilder select = query.selectFrom(TABLE, "email", "name", "status");
+            select.like(req.getString("searchText"), "email", "name");
+            select.orderBy(" email, name").limit(limit, start);
+            List<DataSet> dataList = query.getDataSetList(select);
+            JsonObjectBuilder builder = Json.createObjectBuilder();
+            builder.add(TABLE, parser.getJsonArray(dataList, TABLE, SEARCH));
+            builder.add("start", start);
+            builder.add("limit", limit);
+            builder.add("totalRecords", query.getCount(select));
+            builder.add("length", dataList.size());
+            return builder.build();
+        });
     }
 
     @HttpPath(value = "/create1", secured = false)
@@ -53,22 +60,19 @@ public class AppsUserService {
         if (notValid(name) || !isValidEmail(email)) {
             throw new IllegalArgumentException(locale.get("email.invalid"));
         }
-        final JsonObjectBuilder result = Json.createObjectBuilder();
-        SqlQuery query = database.getQuery();
-        SelectQuery selectQuery = query.selectAll(TABLE).equalTo("email", email).limit(1);
-        DataSet appsUser = selectQuery.getDataSet();
-        if (appsUser != null && !"Pending".equals(appsUser.getString("status", ""))) {
-            throw new IllegalArgumentException(locale.getMessage("emailAlreadyRegistered", email));
-        }
-        result.add("name", name);
-        final String code = appsUser != null ? appsUser.getString("password", "") : UUID.randomUUID().toString();
-        if (appsUser == null) {
-            appsUser = new DataSet().set("email", email).set("name", name).set("password", code);
-            appsUser.set("status", "Pending");
-            query.insert(appsUser, TABLE, CREATE_USER).commit();
-        }
-        result.add("code", code);
-        return result.build();
+        return database.transact(query -> {
+            DataSet appsUser = query.getDataSet(query.selectAll(TABLE).where("email", email).limit(1));
+            if (appsUser != null && !"Pending".equals(appsUser.getString("status", ""))) {
+                throw new IllegalArgumentException(locale.getMessage("emailAlreadyRegistered", email));
+            } else if (appsUser == null) {
+                appsUser = new DataSet().set("email", email).set("name", name)
+                        .set("password", UUID.randomUUID().toString()).set("status", "Pending");
+                query.insert(appsUser, TABLE, CREATE_USER);
+            }
+            appsUser.set("name", name);
+            appsUser.set("code", appsUser.get("password"));
+            return parser.getJsonObject(appsUser, CODE_NAME).build();
+        });
     }
 
     @HttpPath(value = "/create2", secured = false)
@@ -77,44 +81,44 @@ public class AppsUserService {
         final String value = request.getString("value");
         if (notValid(code)) {
             throw new IllegalArgumentException(locale.get("actionPrevious"));
-        }
-        if (notValid(value)) {
+        } else if (notValid(value)) {
             throw new IllegalArgumentException(locale.get("apps_user.password.invalid"));
         }
-        JsonObjectBuilder result = Json.createObjectBuilder();
-        SqlQuery query = database.getQuery();
-        SelectQuery selectQuery = query.selectAll(TABLE).equalTo("password", code).limit(1);
-        DataSet appsUser = selectQuery.getDataSet();
-        if (appsUser == null) {
-            throw new NullPointerException(locale.get("actionPrevious"));
-        }
-        appsUser.unlock().set("password", value).set("status", "Active");
-        query.update(appsUser, TABLE, CREATE_USER).commit();
-        result.add("user", appsUser.getString("name", ""));
-        result.add("email", appsUser.getString("email", ""));
-        return result.build();
+        return database.transact(query -> {
+            DataSet appsUser = query.getDataSet(query.selectAll(TABLE).where("password", code).limit(1));
+            if (appsUser == null) {
+                throw new NullPointerException(locale.get("actionPrevious"));
+            }
+            appsUser.unlock().set("password", value).set("status", "Active");
+            query.update(appsUser, TABLE, CREATE_USER);
+            return parser.getJsonObject(appsUser, SEARCH).build();
+        });
     }
 
     @HttpPath("/update")
     @HttpMethod("PUT")
-    public void update(JsonArray req, JsonResponse response) {
-        SqlParser parser = database.getParser();
-        List<DataSet> appsUserList = parser.getDataSetList(req, TABLE);
-        for (DataSet appsUser : appsUserList) {
-            setStatus(appsUser);
-            parser.hasRequired(appsUser, TABLE, UPDATE);
-        }
-        database.getQuery().update(appsUserList, TABLE, UPDATE).commit();
-        response.success(locale.getMessage("actionSave.msg", appsUserList.size()));
+    public JsonResult update(JsonArray req) {
+        int count = database.transact(query -> {
+            List<DataSet> userList = parser.getDataSetList(req, TABLE, null);
+            for (DataSet user : userList) {
+                setStatus(user);
+                parser.hasRequired(user, TABLE, UPDATE);
+            }
+            query.update(userList, TABLE, UPDATE);
+            return userList.size();
+        });
+        return JsonResult.send(locale.getMessage("actionSave.msg", count));
     }
 
     @HttpPath("/delete")
     @HttpMethod("DELETE")
-    public void delete(JsonArray req, JsonResponse response) {
-        SqlParser parser = database.getParser();
-        List<DataSet> userList = parser.getDataSetList(req, TABLE);
-        database.getQuery().delete(userList, TABLE).commit();
-        response.success(locale.getMessage("actionDelete.msg", userList.size()));
+    public JsonResult delete(JsonArray req) {
+        int count = database.transact(query -> {
+            List<DataSet> userList = parser.getDataSetList(req, TABLE, null);
+            query.delete(userList, TABLE);
+            return userList.size();
+        });
+        return JsonResult.send(locale.getMessage("actionDelete.msg", count));
     }
 
     private void setStatus(DataSet source) {
