@@ -1,11 +1,11 @@
 package sample.dcapture.db.service;
 
+import dcapture.db.util.DataSetResult;
 import dcapture.io.HttpPath;
 import dcapture.io.Localization;
 
 import javax.inject.Inject;
 import javax.json.Json;
-import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import java.util.Map;
 import java.util.Properties;
@@ -20,12 +20,12 @@ public class LocaleService {
     }
 
     @HttpPath(value = "/default", secured = false)
-    private JsonObject locale() {
+    private DataSetResult locale() {
         Properties prop = locale.getProperties(null);
         JsonObjectBuilder result = Json.createObjectBuilder();
         for (Map.Entry<Object, Object> locale : prop.entrySet()) {
             result.add((String) locale.getKey(), (String) locale.getValue());
         }
-        return result.build();
+        return DataSetResult.asJson(result.build());
     }
 }

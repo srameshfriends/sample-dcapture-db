@@ -65,7 +65,6 @@ public class KeySequence {
             String text = localDate == null ? "" : DateTimeFormatter.ofPattern(pattern).format(localDate);
             index = sequenceLine.getInt("last_index") + 1;
             key = prefix + text + index;
-            System.out.println("Last Index : " + index + " \t Last Key : " + key);
             document.set(keyColumn, key);
             UpdateBuilder update = query.updateBuilder(TABLE_LINE).set("last_index", index).set("last_key", key)
                     .where("id", sequenceLine.getLong("id"));

@@ -1,0 +1,188 @@
+<div class="container manage-max">
+    <div class="card">
+        <div class="card-header">
+                    <span id="actionBack">
+                        <i class="fas fa-arrow-left icon-blue"></i>
+                    </span>
+            <span data-locale="expense" class="ml-3"></span>
+            <span class="float-right" id="actionClose">
+                        <i class="fas fa-times icon-blue"></i>
+            </span>
+        </div>
+        <div class="card-body">
+            <form data-id="expense" data-type="form" class="form" method="post" role="form">
+                <input type="hidden" data-id="expense.id" data-type="hidden">
+                <input type="hidden" data-id="expense.rev" data-type="hidden">
+                <div class="form-group">
+                    <label data-locale="expense.expense_date" class="form-control-label"></label>
+                    <input type="date" data-id="expense.expense_date" data-type="date" class="form-control bg-white">
+                </div>
+                <div class="form-group">
+                    <label data-locale="expense.code" class="form-control-label"></label>
+                    <input class="form-control" data-id="expense.code" data-type="text" readonly type="text">
+                </div>
+                <div class="form-group">
+                    <label data-locale="expense.description" class="form-control-label"></label>
+                    <textarea data-id="expense.description" data-type="text" cols="4" class="form-control">
+                                </textarea>
+                </div>
+
+
+                <div class="form-group">
+                    <button class="btn btn-link pl-0" data-locale="expense.expense_category"
+                            id="expenseCategoryLink"></button>
+                    <div class="input-group dropdown">
+                        <input aria-expanded="false" aria-haspopup="true" autocomplete="off"
+                               class="form-control dropdown-toggle" data-id="expense.expense_category"
+                               data-lookup="expense_category.input"
+                               data-toggle="dropdown" data-type="reference" id="expense-category-field" type="text">
+                        <div class="input-group-append">
+                            <button class="input-group bg-transparent border" data-lookup="expense_category.button"
+                                    type="button">
+                                <i class="fas fa-angle-down" style="width: 24px"></i>
+                            </button>
+                        </div>
+                        <div aria-labelledby="expense-category-field" class="dropdown-menu lookup-dialog"
+                             data-lookup="expense_category.dialog">
+                            <input class="form-control" data-lookup="expense_category.search" type="text">
+                            <button class="btn btn-link" data-locale="clearSelected"
+                                    data-lookup="expense_category.clear"></button>
+                            <table class="table table-sm table-hover" data-lookup="expense_category.table">
+                            </table>
+                            <ul class="pagination ml-2">
+                                <li class="page-item">
+                                    <button class="page-link" data-lookup="expense_category.previous">«</button>
+                                </li>
+                                <li class="page-item"><label class="page-link"
+                                                             data-lookup="expense_category.info">-</label></li>
+                                <li class="page-item">
+                                    <button class="page-link" data-lookup="expense_category.next">»</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <button class="btn btn-link pl-0" data-locale="expense.currency" id="currencyLink"></button>
+                    <div class="input-group dropdown">
+                        <input aria-expanded="false" aria-haspopup="true" autocomplete="off"
+                               class="form-control dropdown-toggle" data-id="expense.currency"
+                               data-lookup="currency.input"
+                               data-toggle="dropdown" data-type="reference" id="expense-currency-field" type="text">
+                        <div class="input-group-append">
+                            <button class="input-group bg-transparent border" data-lookup="currency.button"
+                                    type="button">
+                                <i class="fas fa-angle-down" style="width: 24px"></i>
+                            </button>
+                        </div>
+                        <div aria-labelledby="expense-currency-field" class="dropdown-menu lookup-dialog"
+                             data-lookup="currency.dialog">
+                            <input class="form-control" data-lookup="currency.search">
+                            <button class="btn btn-link" data-locale="clearSelected"
+                                    data-lookup="currency.clear"></button>
+                            <table class="table table-sm table-hover" data-lookup="currency.table">
+                            </table>
+                            <ul class="pagination ml-2">
+                                <li class="page-item">
+                                    <button class="page-link" data-lookup="currency.previous">«</button>
+                                </li>
+                                <li class="page-item"><label class="page-link" data-lookup="currency.info">-</label>
+                                </li>
+                                <li class="page-item">
+                                    <button class="page-link" data-lookup="currency.next">»</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label data-locale="expense.amount" class="form-control-label"></label>
+                    <input data-id="expense.amount" data-type="double" class="form-control">
+                </div>
+                <div class="form-group">
+                    <button id="actionSave" data-locale="actionSave" class="btn btn-outline-primary"></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    function ExpenseFormView() {
+        let self = this;
+        self.getId = function () {
+            return "expense-form";
+        };
+        self.model = {name: "expense"};
+        self.model.expense_category = {name: "expense_category", url: "../api/expense_category/search"};
+        self.model.expense_category.columns = [{name: "code", title: "Code"}, {name: "name", title: "Name"}];
+        self.model.currency = {name: "currency", url: "../api/currency/search"};
+        self.model.currency.columns = [{name: "code", title: "Code"}, {name: "name", title: "Name"}];
+        self.form = new FormBinder(self.model);
+        $("#actionBack").on("click", function (evt) {
+            evt.preventDefault();
+            PageManager.showPrevious();
+        });
+        $("#actionClose").on("click", function (evt) {
+            evt.preventDefault();
+            PageManager.show("view/expense-list.html");
+        });
+        $("#expenseCategoryLink").on("click", function (evt) {
+            evt.preventDefault();
+            PageManager.show("view/expense-category.html");
+        });
+        $("#currencyLink").on("click", function (evt) {
+            evt.preventDefault();
+            PageManager.show("view/currency.html");
+        });
+        self.onReload = function (data) {
+            $.ajax({
+                type: "POST",
+                contentType : "application/json",
+                dataType: "json",
+                url: "api/expense/reload",
+                data: JSON.stringify(data),
+                error: function (err) {
+                    MessageDialog.show(err.responseText);
+                },
+                success: function (expense) {
+                    self.form.setValue(expense);
+                    if(0 === expense.id) {
+                        self.form.focus("description");
+                    }
+                }
+            });
+        };
+        self.onSave = function (data) {
+            $.ajax({
+                type: "PUT",
+                contentType : "application/json",
+                dataType: "json",
+                url: "api/expense/save",
+                data: JSON.stringify(data),
+                error: function (msg) {
+                    MessageDialog.show(msg.responseText);
+                    if(200 === msg.status) {
+                        PageManager.show("view/expense-list.html");
+                    }
+                },
+                success: function () {
+                }
+            });
+        };
+        $("#actionSave").on("click", function (evt) {
+            evt.preventDefault();
+            self.onSave([self.form.getValue()]);
+        });
+        self.start = function () {
+            self.form.setValue(SessionDB.get("expense"));
+            $(".manage-max").css("max-width", "600px");
+        };
+    }
+    if(typeof PageManager === "undefined") {
+        window.location.href = "../index.html";
+    } else {
+        PageManager.init(new ExpenseFormView());
+    }
+</script>

@@ -13,11 +13,19 @@ Java -version 10
 ### Development vs Production
 
 1. Localization instance load method for production usage.
-2. mvn package  (Terminal maven command - sources package into target folder)
-3. mvn dependency:copy-dependencies (Terminal maven command helps to copy dependency to target folder)
+2. Terminal maven command - sources package into target folder
+```
+mvn package 
+```
+3. Assembly xml added, it is generate application zip file  
+```
+mvn clean assembly:single
+```
 4. After dependency copied folder renamed to lib (All dependencies)
 5. Run following command to execute application  
-5.1  java -cp sample-dcapture-db.jar sample.dcapture.db.luncher.Main
+```
+java -cp sample-dcapture-db.jar sample.dcapture.db.luncher.Main
+```  
  
 ##### July-2018
 
@@ -84,4 +92,14 @@ IM09
 
 - >Default values added into appdata directory
 - >Lookup field ui improved
+- >dcapture-db and dcapture-io changes are updated
+
+##### Jan-2019
+
+IM10
+
+- >Assembly xml added, it is generate application zip file
+- >webapp folder moved to outside of classpath
+- >JDK-8 used due to tomcat 9 deployment
+- >pickadate.js javascript package added
 - >dcapture-db and dcapture-io changes are updated

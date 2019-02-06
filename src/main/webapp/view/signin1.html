@@ -1,0 +1,117 @@
+<div class="container">
+    <div class="row justify-content-sm-center">
+        <div class="col-lg-6 col-lg-4">
+            <div class="card border-0 text-center">
+                <div class="card-header border-0 bg-transparent">
+                    <h3 class="text-primary" id="apps-name"></h3>
+                </div>
+                <div class="card-body border-0">
+                    <img src="img/logo.png">
+                    <div class="form-group  text-left">
+                        <label data-locale="email"></label>
+                        <div class="input-group mb-2">
+                            <input type="email" autofocus class="form-control" id="adsfjhdsfjahdfjj">
+                            <div class="input-group-append">
+                                <button id="actionNext" data-locale="actionNext"
+                                        class="btn btn-outline-info"></button>
+                            </div>
+                        </div>
+                        <div class="form-group d-inline">
+                            <button id="actionCreateAccount" data-locale="createAccount"
+                                    class="float-left btn btn-link"></button>
+                        </div>
+                        <div class="form-group d-inline">
+                            <button id="actionResetPassword" data-locale="actionResetPassword"
+                                    class="btn btn-link float-right"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function UserBatchView1() {
+        let self = this;
+        self.getId = function () {
+            return "signin1";
+        };
+        self.isValidEmail = function (eml) {
+            return /(.+)@(.+){2,}\.(.+){2,}/.test(eml);
+        };
+        self.onSubmit = function (data) {
+            $.ajax({
+                type: "POST",
+                contentType : "application/json",
+                dataType: "json",
+                url: "api/session/authorise1",
+                data: JSON.stringify(data),
+                error: function (err) {
+                    MessageDialog.show(err.responseText);
+                },
+                success: function (args) {
+                    SessionDB.set("aduetthaecnittinceahtteuda", JSON.stringify(args));
+                    PageManager.show("view/signin2.html");
+                }
+            });
+        };
+        self.onReset = function (data) {
+            $.ajax({
+                type: "POST",
+                contentType : "application/json",
+                dataType: "json",
+                url: "api/session/reset",
+                data: JSON.stringify(data),
+                error: function (err) {
+                    MessageDialog.show(err.responseText);
+                },
+                success: function (msg) {
+                    MessageDialog.show(msg.title);
+                }
+            });
+        };
+        let node = $("#adsfjhdsfjahdfjj");
+        self.onEvent = function () {
+            let item = node.val().trim();
+            if (self.isValidEmail(item)) {
+                self.onSubmit({email: item});
+            } else {
+                MessageDialog.locale("email.invalid");
+                node.focus();
+                node.select();
+            }
+        };
+        node.keyup(function (evt) {
+            evt.preventDefault();
+            if (evt.keyCode === 13) {
+                self.onEvent();
+            }
+        });
+        $("#actionNext").on("click", function (evt) {
+            evt.preventDefault();
+            self.onEvent();
+        });
+        $("#actionResetPassword").on("click", function () {
+            let item = node.val().trim();
+            if (self.isValidEmail(item)) {
+                self.onReset({email: item});
+            } else {
+                MessageDialog.locale("email.invalid");
+                node.focus();
+                node.select();
+            }
+        });
+        $("#actionCreateAccount").on("click", function () {
+             PageManager.show("view/signup1.html");
+        });
+        self.start = function() {
+            $("#apps-name").text(SessionDB.getValue("applicationName"));
+            node.focus();
+        };
+    }
+    if(typeof PageManager === "undefined") {
+        window.location.href = "../index.html";
+    } else {
+        PageManager.init(new UserBatchView1());
+    }
+</script>

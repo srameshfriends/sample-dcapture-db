@@ -1,0 +1,142 @@
+<div class="container">
+    <div id="user-list">
+        <div class="row">
+            <div class="d-inline">
+                <ul class="pagination ml-2">
+                    <li class="page-item"><input id="searchText" class="page-link" placeholder="actionSearch"></li>
+                    <li class="page-item">
+                        <button id="actionSearch" class="page-link" type="button">
+                            <i class="fas fa-search icon-blue"></i></button>
+                    </li>
+                </ul>
+            </div>
+            <div class="d-inline">
+                <ul class="pagination ml-2">
+                    <li class="page-item">
+                        <button class="page-link" id="actionPrevious">«</button>
+                    </li>
+                    <li class="page-item"><label class="page-link" id="pagingInfo">-</label></li>
+                    <li class="page-item">
+                        <button class="page-link" id="actionNext">»</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="d-inline">
+                <ul class="pagination ml-2">
+                    <li class="page-item">
+                        <button id="actionDelete" data-locale="actionDelete" class="page-link text-danger"></button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <table class="table table-bordered">
+                <thead data-id="userList">
+                <tr>
+                    <th data-type="selectable" width="50px"></th>
+                    <th data-type="link" data-id="userList.email" data-locale="apps_user.email"></th>
+                    <th data-type="text" data-id="userList.name" data-locale="apps_user.name"></th>
+                    <th data-type="text" data-id="userList.status" data-locale="apps_user.status"></th>
+                </tr>
+                </thead>
+                <tbody data-id="userList">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    function UserListView() {
+        let self = this;
+        self.getId = function () {
+            return "user-list";
+        };
+        self.model = {name: "apps_user"};
+        self.paging = new Paging("apps_user");
+        self.paging.build($("#actionPrevious"), $("#actionNext"), $("#pagingInfo"));
+        self.dataGrid = new DataTable({name: "userList"});
+        self.dataGrid.onChange(function (eventId, name, data) {
+            if ("click" === eventId) {
+                SessionDB.set("apps_user", data);
+                PageManager.show("view/user-form.html");
+            }
+        });
+        self.search = function (req) {
+            req.name = self.model.name;
+            req.searchText = $("#searchText").val().trim();
+            $.ajax({
+                type: "POST",
+                contentType : "application/json",
+                dataType: "json",
+                url: "api/user/search",
+                data: JSON.stringify(req),
+                error: function (err) {
+                    MessageDialog.show(err.responseText);
+                },
+                success: function (data) {
+                    const name = self.model.name;
+                    self.dataGrid.setData(data[name]);
+                    self.paging.set(data);
+                }
+            });
+        };
+        self.onDelete = function (data) {
+            $.ajax({
+                type: "DELETE",
+                contentType : "application/json",
+                dataType: "json",
+                url: "api/user/delete",
+                data: JSON.stringify(data),
+                error: function (err) {
+                    MessageDialog.show(err.responseText);
+                    if(200 === err.status) {
+                        self.search(self.paging.get());
+                    }
+                },
+                success: function () {
+                }
+            });
+        };
+        self.paging.onPrevious(function (req) {
+            self.search(req);
+        });
+        self.paging.onNext(function (req) {
+            self.search(req);
+        });
+        $("#actionSearch").on("click", function (evt) {
+            evt.preventDefault();
+            self.showListView();
+            self.search(self.paging.get());
+        });
+        self.searchDelay = new CallFuture(1200);
+        $("#searchText").keyup(function (evt) {
+            self.searchDelay.cancelAll();
+            if (13 === evt.keyCode) {
+                self.search(self.paging.get());
+            } else {
+                self.searchDelay.call(function () {
+                    self.search(self.paging.get());
+                });
+            }
+        });
+        $("#actionDelete").on("click", function (evt) {
+            evt.preventDefault();
+            let array = self.dataGrid.getSelected();
+            if (array.length) {
+                UndoDialog.showLocale("actionDelete", function () {
+                    self.onDelete(array);
+                });
+            }
+        });
+        self.start = function () {
+            self.search(self.paging.get());
+        };
+    }
+    if(typeof PageManager === "undefined") {
+        window.location.href = "../index.html";
+    } else {
+        PageManager.init(new UserListView());
+    }
+</script>

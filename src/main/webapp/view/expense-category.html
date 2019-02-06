@@ -1,0 +1,236 @@
+<div class="container">
+    <div id="form-div" class="row">
+        <div class="mx-auto manage-max">
+            <div class="card">
+                <div class="card-header">
+                    <span id="actionBack">
+                        <i class="fas fa-arrow-left icon-blue"></i>
+                    </span>
+                    <span data-locale="expense_category" class="ml-3"></span>
+                    <span class="float-right" id="actionClose">
+                        <i class="fas fa-times icon-blue"></i>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <form data-id="expense_category" data-type="form" class="form" method="post" role="form">
+                        <input type="hidden" data-id="expense_category.id" data-type="hidden">
+                        <input type="hidden" data-id="expense_category.rev" data-type="hidden">
+                        <div class="form-group">
+                            <label class="form-control-label" data-locale="expense_category.name"></label>
+                            <input class="form-control" data-id="expense_category.name" data-type="text">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-control-label" data-locale="expense_category.code"></label>
+                            <input class="form-control" data-id="expense_category.code" data-type="text" readonly>
+                        </div>
+                        <div class="form-group">
+                            <button id="actionSave" type="button" class="btn btn-outline-primary" data-locale="actionSave" ></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="list-div">
+        <div class="row">
+            <div class="d-inline">
+                <ul class="pagination">
+                    <li class="page-item">
+                        <button id="actionCreate" data-locale="actionCreate" class="page-link text-primary"></button>
+                    </li>
+                </ul>
+            </div>
+            <div class="d-inline">
+                <ul class="pagination ml-2">
+                    <li class="page-item"><input id="searchText" class="page-link" placeholder="actionSearch"></li>
+                    <li class="page-item">
+                        <button id="actionSearch" class="page-link" type="button">
+                            <i class="fas fa-search icon-blue"></i></button>
+                    </li>
+                </ul>
+            </div>
+            <div class="d-inline">
+                <ul class="pagination ml-2">
+                    <li class="page-item">
+                        <button class="page-link" id="actionPrevious">«</button>
+                    </li>
+                    <li class="page-item"><label class="page-link" id="pagingInfo">-</label></li>
+                    <li class="page-item">
+                        <button class="page-link" id="actionNext">»</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="d-inline">
+                <ul class="pagination ml-2">
+                    <li class="page-item">
+                        <button id="actionDelete" data-locale="actionDelete" class="page-link text-danger"></button>
+                    </li>
+                </ul>
+            </div>
+            <div class="d-inline">
+                <ul class="pagination ml-2">
+                    <li class="page-item">
+                        <form id="exportForm" action="api/currency/export/csv" target="_blank" method="post">
+                            <button id="actionExport" data-locale="actionExport" class="page-link text-secondary">
+                            </button>
+                        </form>
+                    </li>
+                    <li class="page-item">
+                        <button id="actionImport" data-locale="actionImport" class="page-link text-secondary">
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <table class="table table-bordered">
+                <thead data-id="categoryList">
+                <tr>
+                    <th data-type="selectable" width="40px"></th>
+                    <th data-type="link" data-id="categoryList.code" data-locale="expense_category.code"></th>
+                    <th data-type="text" data-id="categoryList.name" data-locale="expense_category.name"></th>
+                </tr>
+                </thead>
+                <tbody data-id="currencyList">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+    function ExpenseCategoryView() {
+        let self = this;
+        self.getId = function () {
+            return "expense-category";
+        };
+        self.formDiv = $("#form-div");
+        self.listDiv = $("#list-div");
+        self.model = {name: "expense_category"};
+        self.paging = new Paging("expense_category");
+        self.paging.build($("#actionPrevious"), $("#actionNext"), $("#pagingInfo"));
+        self.dataGrid = new DataTable({name: "categoryList"});
+        self.dataGrid.onChange(function (eventId, name, data) {
+            if ("click" === eventId) {
+                self.showFormView();
+                self.form.setValue(data);
+            }
+        });
+        self.showListView = function () {
+            $("#form-div").hide();
+            $("#list-div").show();
+        };
+        self.showFormView = function () {
+            $("#list-div").hide();
+            $("#form-div").show();
+        };
+        self.search = function (req) {
+            req.name = self.model.name;
+            req.searchText = $("#searchText").val().trim();
+            $.ajax({
+                type: "POST",
+                contentType : "application/json",
+                dataType: "json",
+                url: "api/expense_category/search",
+                data: JSON.stringify(req),
+                error: function (err) {
+                    MessageDialog.show(err.responseText);
+                },
+                success: function (data) {
+                    const name = self.model.name;
+                    self.dataGrid.setData(data[name]);
+                    self.paging.set(data);
+                }
+            });
+        };
+        self.onSave = function (data) {
+            $.ajax({
+                type: "PUT",
+                contentType : "application/json",
+                dataType: "json",
+                url: "api/expense_category/save",
+                data: JSON.stringify(data),
+                error: function (err) {
+                    MessageDialog.show(err.responseText);
+                    if(200 === err.status){
+                        self.showListView();
+                        self.search(self.paging.get());
+                    }
+                },
+                success: function () {
+                }
+            });
+        };
+        self.onDelete = function (data) {
+            $.ajax({
+                type: "DELETE",
+                contentType : "application/json",
+                dataType: "json",
+                url: "api/expense_category/delete",
+                data: JSON.stringify(data),
+                error: function (err) {
+                    MessageDialog.show(err.responseText);
+                    self.search(self.paging.get());
+                },
+                success: function () {
+                }
+            });
+        };
+        $("#actionDelete").on("click", function () {
+            const array = self.dataGrid.getSelected();
+            if (array.length) {
+                UndoDialog.showLocale("actionDelete", function () {
+                    self.onDelete(array);
+                });
+            }
+        });
+        self.form = new FormBinder(self.model);
+        $("#actionSave").on("click", function (evt) {
+            evt.preventDefault();
+            self.onSave([self.form.getValue()]);
+        });
+        self.paging.onPrevious(function (req) {
+            self.search(req);
+        });
+        self.paging.onNext(function (req) {
+            self.search(req);
+        });
+        $("#actionCreate").on("click", function () {
+            self.showFormView();
+            self.form.setValue({name:"", code:"AUTO"});
+        });
+        $("#actionSearch").on("click", function (evt) {
+            evt.preventDefault();
+            self.showListView();
+            self.search(self.paging.get());
+        });
+        $("#actionClose").on("click", function (evt) {
+            evt.preventDefault();
+            self.showListView();
+        });
+        $("#actionBack").on("click", function (evt) {
+            evt.preventDefault();
+            self.showListView();
+        });
+        self.searchDelay = new CallFuture(1200);
+        $("#searchText").keyup(function (evt) {
+            if (13 === evt.keyCode) {
+                self.search(self.paging.get(true));
+            } else {
+                self.searchDelay.call(function () {
+                    self.search(self.paging.get(true));
+                });
+            }
+        });
+        self.start = function () {
+            $(".manage-max").css("max-width", "600px");
+            self.form.setValue({name:"", code:"AUTO"});
+            self.formDiv.hide();
+            self.search(self.paging.get());
+        };
+    }
+    if(typeof PageManager === "undefined") {
+        window.location.href = "../index.html";
+    } else {
+        PageManager.init(new ExpenseCategoryView());
+    }
+</script>

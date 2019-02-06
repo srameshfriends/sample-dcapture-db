@@ -9,8 +9,8 @@
     <version>1.0</version>
 
     <properties>
-        <maven.compiler.source>10</maven.compiler.source>
-        <maven.compiler.target>10</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <dcapture>1.0</dcapture>
         <h2>1.4.197</h2>
@@ -18,6 +18,8 @@
         <commons-csv>1.6</commons-csv>
         <commons-pool2>2.6.0</commons-pool2>
         <commons-dbcp2>2.5.0</commons-dbcp2>
+        <jetty>9.4.14.v20181114</jetty>
+        <javax-json>1.1.4</javax-json>
     </properties>
 
     <dependencies>
@@ -47,6 +49,18 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>${commons-csv}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.glassfish</groupId>
+            <artifactId>javax.json</artifactId>
+            <version>${javax-json}</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <version>${h2}</version>
@@ -59,33 +73,31 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-csv</artifactId>
-            <version>${commons-csv}</version>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-server</artifactId>
+            <version>${jetty}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-servlet</artifactId>
+            <version>${jetty}</version>
         </dependency>
 
     </dependencies>
 
     <build>
-        <finalName>sample-dcapture-db</finalName>
         <pluginManagement>
             <plugins>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.7.0</version>
+                    <version>3.5.1</version>
                     <configuration>
-                        <source>10</source>
-                        <target>10</target>
-                        <release>10</release>
+                        <executable>/usr/lib/jvm/java-8-oracle/bin/javac</executable>
+                        <source>1.8</source>
+                        <target>1.8</target>
                     </configuration>
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.ow2.asm</groupId>
-                            <artifactId>asm</artifactId>
-                            <version>6.2</version>
-                        </dependency>
-                    </dependencies>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -106,12 +118,11 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.1.0</version>
+                    <version>3.1.1</version>
                     <configuration>
                         <archive>
                             <index/>
                             <manifest>
-                                <mainClass>sample.dcapture.db.luncher.Main</mainClass>
                                 <addClasspath>true</addClasspath>
                             </manifest>
                             <manifestEntries>
@@ -121,6 +132,23 @@
                             </manifestEntries>
                         </archive>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.1.1</version>
+                    <configuration>
+                        <descriptors>
+                            <descriptor>assembly.xml</descriptor>
+                        </descriptors>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>single</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>
