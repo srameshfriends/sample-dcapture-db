@@ -1,105 +1,44 @@
-# sample-dcapture-db 
+#### SFTP Communication
 
-Application sample for dcapture-db and dcapture-io projects
+ - Java 8 language is used to communicate files via sftp protocol.   
 
-Java -version 10
-
-### Dependency
-
-1. dcapture-db, dcapture-io - 1.0
-
-2. Required dependency from both projects
-
-### Development vs Production
-
-1. Localization instance load method for production usage.
-2. Terminal maven command - sources package into target folder
-```
-mvn package 
-```
-3. Assembly xml added, it is generate application zip file  
-```
-mvn clean assembly:single
-```
-4. After dependency copied folder renamed to lib (All dependencies)
-5. Run following command to execute application  
-```
-java -cp sample-dcapture-db.jar sample.dcapture.db.luncher.Main
-```  
+ - Library
+    - JSch is a pure Java implementation of SSH2, jsch-0.1.55 . http://www.jcraft.com/jsch/ 
+        - JSch enables us to use either Password Authentication or Public Key Authentication to access a remote server. 
+        We'll use password authentication:  
+    - commons-io-2.6 file io operation utility
+    - log4j-1.2.17 logging purpose
+    
+ -  The basic process is similar mailbox 
+    - locale outbox => remote inbox
+    - Files has been uploaded to remote server, and locale outbox files archived.
+    - remote outbox => locale inbox
+    - Files has been downloaded from remote server, then remote outbox files archived.
+    
+ - User Home /sftp-mailbox/config.properties 
  
-##### July-2018
+```
+     sftp.pid=test-process-name
+     sftp.host=192.168.1.102
+     sftp.user=admin
+     sftp.password=password
+     sftp.port=22
+     sftp.home=C:\\Users\\admin\\sftp-client\\mailbox
+     sftp.local.read=out
+     sftp.local.write=in
+     sftp.local.archive=archive
+     sftp.remote.read=out
+     sftp.remote.write=in
+     sftp.remote.archive=archive
+     sftp.log=C:\\Users\\admin\\sftp-client\\bin\\log
+     sftp.operation.mode=DOWNLOAD,DELETE_REMOTE_ARCHIVE,UPLOAD,DELETE_LOCALE_ARCHIVE
+```
 
-IM01
-
-- >Java 10 migration are updated.
-- >dcapture-db and dcapture-io changes are updated
-- >webapp folder moved to class path location
-
-IM02
-
-- >dcapture-io changes are updated
-- >User service fix issues
-- >single page (Modulation) environment are created.
-- >bootstrap.bundle.js dependency is used, instead of bootstrap.js 
-- >bootstrap unused dependencies are removed
-- >LookupField visual effect improved
-- >User Register two page concept are updated
-- >simple-grid renamed as data-table, main.js renamed to core.js
-
-##### Sep-2018
-
-IM03
-
-- >dcapture-db and dcapture-io changes are updated
-- >Log4j dependency removed, default java logging used
-
-IM04
-
-- >dcapture-db and dcapture-io changes are updated
-- >H2DatabaseFactory helps to start h2 database for development purpose
-- >SqlTableBuilder removed, builder is added in db project
-
-IM05
-
-- >dcapture-db and dcapture-io changes are updated
-- >SqlMapper removed instead of use SqlParser
-
-##### Oct-2018
-
-IM06
-
-- >dcapture-db and dcapture-io changes are updated
-- >csv-import-view and csv-table util pages are created
-- >log4j2.xml logger configuration file added for HikariCP jdbc connection pool.
-- >Currency view are updated latest changes with export and import
-
-IM07
-
-- >@Path annotation replaced by @HttpPath 
-- >@HttpMethod annotation are used
-- >system-db and key sequence are added
-- >dcapture-db and dcapture-io changes are updated
-
-##### Nov-2018
-
-IM08
-
-- >dcapture-db and dcapture-io changes are updated
-- >Expense, Currency and Expense Category status removed
-- >Project concept removed
-
-IM09
-
-- >Default values added into appdata directory
-- >Lookup field ui improved
-- >dcapture-db and dcapture-io changes are updated
-
-##### Jan-2019
-
-IM10
-
-- >Assembly xml added, it is generate application zip file
-- >webapp folder moved to outside of classpath
-- >JDK-8 used due to tomcat 9 deployment
-- >pickadate.js javascript package added
-- >dcapture-db and dcapture-io changes are updated
+ - Operation mode will decide to run specific process 
+    - DOWNLOAD : Download files from remote sftp server
+    - UPLOAD : Upload files from local sftp to remote server
+    - DELETE_REMOTE_ARCHIVE : Delete files in remote sftp server archive directory files
+    - DELETE_LOCAL_ARCHIVE : Delete files in remote sftp server archive directory files
+    
+- Application logging under the following directory  
+    - User Home / sftp-mailbox/log/sftp-mailbox.log
