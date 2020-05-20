@@ -1,0 +1,1 @@
+java -jar sftp-mailbox.jar config=D:\\sftp\\bin\\config.properties
