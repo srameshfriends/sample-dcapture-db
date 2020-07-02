@@ -17,7 +17,7 @@ public class Main {
     }
 
     private void connect() throws JSchException, IOException {
-        config.start();
+        config.lock();
         logger.info(config.get("sftp.host") + " : Connection request is progress... ");
         sftpService = new SftpService(config);
         sftpService.connect();
@@ -28,7 +28,7 @@ public class Main {
         if (sftpService != null) {
             sftpService.disconnect();
         }
-        config.stop();
+        config.unlock();
     }
 
     private List<File> upload() throws JSchException, SftpException {
@@ -198,43 +198,6 @@ public class Main {
         logger.info(" ***** LOCAL ARCHIVE FILES DELETED ***** ");
     }
 
-    /*private static void reset() throws IOException {
-        File file = getStatusFile();
-        if (file != null) {
-            FileUtils.write(file, "NOT-RUNNING", StandardCharsets.UTF_8);
-        }
-    }
-
-    private static File getStatusFile() throws IOException {
-        String userHome = System.getProperty("user.home");
-        File file = new File(userHome, "sftp-mailbox");
-        boolean isDirectory = file.isDirectory();
-        if (!isDirectory) {
-            isDirectory = file.mkdir();
-        }
-        if (!isDirectory) {
-            return null;
-        }
-        File statusFile = new File(file, "status");
-        if (!statusFile.isFile()) {
-            FileUtils.write(statusFile, "NOT-RUNNING", StandardCharsets.UTF_8);
-        }
-        return statusFile;
-    }
-
-    private static Map<String, String> getParameter(String[] args) {
-        Map<String, String> parameter = new HashMap<>();
-        if (args != null) {
-            for (String text : args) {
-                String[] array = text.split("=");
-                if (2 == array.length) {
-                    parameter.put(array[0].trim(), array[1].trim().toLowerCase());
-                }
-            }
-        }
-        return parameter;
-    }*/
-
     public static void main(String[] args) {
         if (args == null || 1 > args.length) {
             logger.warn("SFTP Configuration properties file not valid. \n Exiting now");
@@ -266,34 +229,17 @@ public class Main {
                 program.deleteLocalArchiveFiles();
             }
             program.stop();
-            /*Map<String, String> parameter = getParameter(args);
-            if ("reset".equals(parameter.get("instance"))) {
-                reset();
-            } else if (isRunning()) {
-                logger.warn("SFTP : 2 instances of this program cannot be running at the same time. \n Exiting now");
-                System.exit(1);
-                return;
-            }
-            Properties prop = new Properties();
-            String config = parameter.get("config");
-            if (config == null) {
-                Path path = Paths.get(System.getProperty("user.home"), "sftp-mailbox", "config.properties");
-                logger.info("SFTP Configuration Reading from (" + path + ")");
-                prop.load(new FileReader(path.toFile()));
-            } else {
-                logger.info("SFTP Configuration Reading from (" + config + ")");
-                prop.load(new FileReader(config));
-            }*/
         } catch (Exception ex) {
             ex.printStackTrace();
             logger.trace(ex.getMessage(), ex);
             try {
                 if (config != null) {
-                    config.stop();
+                    config.unlock();
                 }
             } catch (IOException ig) {
                 // ignore exception
             }
+            System.exit(1);
         }
     }
 }

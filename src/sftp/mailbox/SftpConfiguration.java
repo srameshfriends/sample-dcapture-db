@@ -67,7 +67,7 @@ public class SftpConfiguration {
         }
         properties = new Properties();
         properties.load(new FileReader(file));
-        updateLog4jConfiguration(properties.getProperty("sftp.log"));
+        updateLog4jConfiguration(properties.getProperty("sftp.log"), properties.getProperty("sftp.pid"));
         logger.info("SFTP Configuration Read from (" + file.toString() + ")");
         setOperationMode(properties.getProperty("sftp.operation.mode"));
         if (get("sftp.host") == null) {
@@ -129,7 +129,7 @@ public class SftpConfiguration {
         }
     }
 
-    private void updateLog4jConfiguration(String directory) throws IOException {
+    private void updateLog4jConfiguration(String directory, String pid) throws IOException {
         File folder = directory == null ? null : new File(directory);
         if (folder == null) {
             return;
@@ -145,10 +145,10 @@ public class SftpConfiguration {
         } catch (IOException e) {
             System.err.println("ERROR: Cannot load log4j.properties file");
         }
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd-hh-mm");
-        String name = format.format(new Date());
-        name = name.replaceAll("-", "");
-        String loggingAt = new File(folder, name + ".log").toString();
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        String suffix = format.format(new Date());
+        suffix = suffix.replaceAll("-", "");
+        String loggingAt = new File(folder, pid + "-" + suffix + ".log").toString();
         props.setProperty("log4j.appender.logfile.File", loggingAt);
         PropertyConfigurator.configure(props);
         logger.warn("SFTP SERVICE LOGGED AT " + loggingAt);
@@ -167,7 +167,7 @@ public class SftpConfiguration {
         return "RUNNING".equals(status);
     }
 
-    public void start() throws IOException {
+    public void lock() throws IOException {
         String pid = get("sftp.pid");
         if (pid == null) {
             throw new NullPointerException("sftp.pid configuration should not be null");
@@ -176,7 +176,7 @@ public class SftpConfiguration {
         FileUtils.write(file, "RUNNING", StandardCharsets.UTF_8);
     }
 
-    public void stop() throws IOException {
+    public void unlock() throws IOException {
         String pid = get("sftp.pid");
         if (pid == null) {
             throw new NullPointerException("sftp.pid configuration should not be null");

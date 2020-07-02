@@ -14,6 +14,7 @@
     - Files has been uploaded to remote server, and locale outbox files archived.
     - remote outbox => locale inbox
     - Files has been downloaded from remote server, then remote outbox files archived.
+    - Each process(pid) has separate logging.
     
  - User Home /sftp-mailbox/config.properties 
  
