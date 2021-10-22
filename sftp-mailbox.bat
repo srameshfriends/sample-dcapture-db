@@ -1,0 +1,1 @@
+java -jar sftp-client.jar D:\\sftp\\bin\\config.properties
