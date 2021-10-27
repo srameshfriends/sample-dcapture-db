@@ -1,23 +1,23 @@
-#### SFTP Communication
+#### SFTP Client Communication
 
- - Java 8 language is used to communicate files via sftp protocol.   
+- Java 11 language is used to communicate files via sftp protocol.
 
- - Library
-    - JSch is a pure Java implementation of SSH2, jsch-0.1.55 . http://www.jcraft.com/jsch/ 
-        - JSch enables us to use either Password Authentication or Public Key Authentication to access a remote server. 
-        We'll use password authentication:  
-    - commons-io-2.6 file io operation utility
-    - log4j-1.2.17 logging purpose
-    
- -  The basic process is similar mailbox 
+- Library
+    - JSch is a pure Java implementation of SSH2, jsch-0.1.55 . http://www.jcraft.com/jsch/
+        - JSch enables us to use either Password Authentication or Public Key Authentication to access a remote server.
+          We'll use password authentication:
+    - commons-io-2.11.1 file io operation utility
+    - slf4j 2.0.0-alpha5 logging purpose
+
+- The basic process is similar mailbox
     - locale outbox => remote inbox
     - Files has been uploaded to remote server, and locale outbox files archived.
     - remote outbox => locale inbox
     - Files has been downloaded from remote server, then remote outbox files archived.
     - Each process(pid) has separate logging.
-    
- - User Home /sftp-mailbox/config.properties 
- 
+
+- User Home /sftp-mailbox/config.properties
+
 ```
      sftp.pid=test-process-name
      sftp.host=192.168.1.102

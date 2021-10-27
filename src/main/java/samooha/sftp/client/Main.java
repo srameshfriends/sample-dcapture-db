@@ -1,10 +1,16 @@
-package sftp.mailbox;
+package samooha.sftp.client;
 
-import com.jcraft.jsch.*;
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.SftpException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.TrueFileFilter;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 public class Main {
@@ -31,6 +37,57 @@ public class Main {
         config.unlock();
     }
 
+    public static void main(String[] args) {
+        Path path;
+        if (args == null || 0 == args.length) {
+            path = Paths.get(System.getProperty("user.home"), "sftp-service", "config", "sftp.properties");
+        } else {
+            path = Paths.get(args[0].trim());
+        }
+        if (!Files.exists(path)) {
+            logger.warn("SFTP Configuration properties file not valid.\n" + path + "\nExiting now");
+            System.exit(1);
+            return;
+        }
+        SftpConfiguration config = null;
+        try {
+            config = new SftpConfiguration(path.toFile());
+            config.loadConfiguration();
+            Main program = new Main(config);
+            program.connect();
+            if (config.isUpload()) {
+                List<File> fileList = program.upload();
+                if (fileList != null) {
+                    program.onUploadArchive(fileList);
+                }
+            }
+            if (config.isDownload()) {
+                List<ChannelSftp.LsEntry> entries = program.download();
+                if (entries != null) {
+                    program.onRemoteArchive(entries);
+                }
+            }
+            if (config.isDeleteRemoteArchive()) {
+                program.deleteRemoteArchiveFiles();
+            }
+            if (config.isDeleteLocalArchive()) {
+                program.deleteLocalArchiveFiles();
+            }
+            program.stop();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            logger.trace(ex.getMessage(), ex);
+            try {
+                if (config != null) {
+                    config.unlock();
+                }
+            } catch (IOException ig) {
+                // ignore exception
+            }
+            System.exit(1);
+        }
+    }
+
     private List<File> upload() throws JSchException, SftpException {
         if (!config.isRemoteWrite()) {
             logger.info("Upload folder not found at configuration");
@@ -40,7 +97,7 @@ public class Main {
         final String writeTo = config.get("sftp.remote.write");
         File readFrom = new File(config.get("sftp.home"), config.get("sftp.local.read"));
         if (!readFrom.isDirectory()) {
-            logger.error("SFTP Home folder not valid : " + readFrom.toString());
+            logger.error("SFTP Home folder not valid : " + readFrom);
             return null;
         }
         logger.info("READ FILES FROM : " + readFrom);
@@ -61,19 +118,19 @@ public class Main {
     }
 
     private void onUploadArchive(final List<File> fileList) throws IOException {
-        if (!config.isLocalArchive()) {
+        if (config.isNotLocalArchive()) {
             logger.info("Local files archive folder not found at configuration!");
             return;
         }
         logger.info(" ***** LOCAL FILES ARCHIVE IS STARTED ***** ");
         final File home = new File(config.get("sftp.home"));
         if (!home.isDirectory()) {
-            logger.error("SFTP Home folder not valid : " + home.toString());
+            logger.error("SFTP Home folder not valid : " + home);
             return;
         }
         File source = new File(home, config.get("sftp.local.read"));
         if (!source.isDirectory()) {
-            logger.error("SFTP local folder not valid : " + source.toString());
+            logger.error("SFTP local folder not valid : " + source);
             return;
         }
         logger.info("READ FROM TO ARCHIVE : " + source);
@@ -100,13 +157,13 @@ public class Main {
         }
         final File home = new File(config.get("sftp.home"));
         if (!home.isDirectory()) {
-            logger.error("SFTP Home folder not valid : " + home.toString());
+            logger.error("SFTP Home folder not valid : " + home);
             return null;
         }
         logger.info(" ***** DOWNLOAD PROCESS IS STARTED ***** ");
         File localPath = new File(home, config.get("sftp.local.write"));
         if (!localPath.isDirectory()) {
-            logger.info("SFTP local write folder not valid : " + localPath.toString());
+            logger.info("SFTP local write folder not valid : " + localPath);
             return null;
         }
         logger.info("WRITE FILES TO : " + localPath);
@@ -121,7 +178,7 @@ public class Main {
         for (ChannelSftp.LsEntry entry : entries) {
             index += 1;
             File toFile = new File(localPath, entry.getFilename());
-            logger.info(index + ", " + remotePath + File.separator + entry.getFilename() + " - DOWNLOAD TO : " + toFile.toString());
+            logger.info(index + ", " + remotePath + File.separator + entry.getFilename() + " - DOWNLOAD TO : " + toFile);
             sftpService.download(remotePath, entry.getFilename(), toFile);
         }
         logger.info(" ***** DOWNLOAD FILES COMPLETED ***** ");
@@ -129,7 +186,7 @@ public class Main {
     }
 
     private void onRemoteArchive(List<ChannelSftp.LsEntry> entries) throws JSchException, SftpException {
-        if (!config.isRemoteArchive()) {
+        if (config.isNotRemoteArchive()) {
             logger.info("Remote files archive folder not found at configuration");
             return;
         }
@@ -145,15 +202,16 @@ public class Main {
         int index = 0;
         for (ChannelSftp.LsEntry entry : entries) {
             index += 1;
-            String writeTo = archive + "/" + read + "/" + entry.getFilename();
-            logger.info(index + ", " + read + "/" + entry.getFilename() + " - ARCHIVE TO : " + writeTo);
-            sftpService.rename(entry.getFilename(), read, archive + "/" + read);
+            String writeTo = archive + "/" + read;
+            String writeToFile = writeTo + "/" + entry.getFilename();
+            logger.info(index + ", " + read + "/" + entry.getFilename() + " - ARCHIVE TO : " + writeToFile);
+            sftpService.rename(entry.getFilename(), read, writeTo);
         }
         logger.info(" ***** ARCHIVE REMOTE FILES COMPLETED ***** ");
     }
 
     private void deleteRemoteArchiveFiles() throws JSchException, SftpException {
-        if (!config.isRemoteArchive()) {
+        if (config.isNotRemoteArchive()) {
             logger.info("Remote files archive folder not found to delete files!");
             return;
         }
@@ -175,7 +233,7 @@ public class Main {
     }
 
     private void deleteLocalArchiveFiles() throws IOException {
-        if (!config.isLocalArchive()) {
+        if (config.isNotLocalArchive()) {
             logger.info("Local files archive folder not found to delete files!");
             return;
         }
@@ -183,7 +241,7 @@ public class Main {
         final File home = new File(config.get("sftp.home"));
         File archive = new File(home, config.get("sftp.local.archive"));
         archive = new File(archive, config.get("sftp.local.read"));
-        logger.info("DELETE LOCAL ARCHIVE FILES FROM : " + archive.toString());
+        logger.info("DELETE LOCAL ARCHIVE FILES FROM : " + archive);
         List<File> fileList = (List<File>) FileUtils.listFiles(archive, TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE);
         if (fileList.isEmpty()) {
             logger.info("No files to delete!");
@@ -191,55 +249,10 @@ public class Main {
         int index = 1;
         for (File sourceFile : fileList) {
             File file = new File(archive, sourceFile.getName());
-            logger.info(index + ", " + file.toString());
+            logger.info(index + ", " + file);
             FileUtils.forceDelete(file);
             index += 1;
         }
         logger.info(" ***** LOCAL ARCHIVE FILES DELETED ***** ");
-    }
-
-    public static void main(String[] args) {
-        if (args == null || 1 > args.length) {
-            logger.warn("SFTP Configuration properties file not valid. \n Exiting now");
-            System.exit(1);
-            return;
-        }
-        SftpConfiguration config = null;
-        try {
-            config = new SftpConfiguration(args[0].trim());
-            config.loadConfiguration();
-            Main program = new Main(config);
-            program.connect();
-            if (config.isUpload()) {
-                List<File> fileList = program.upload();
-                if (fileList != null) {
-                    program.onUploadArchive(fileList);
-                }
-            }
-            if (config.isDownload()) {
-                List<ChannelSftp.LsEntry> entries = program.download();
-                if (entries != null) {
-                    program.onRemoteArchive(entries);
-                }
-            }
-            if(config.isDeleteRemoteArchive()) {
-                program.deleteRemoteArchiveFiles();
-            }
-            if(config.isDeleteLocalArchive()) {
-                program.deleteLocalArchiveFiles();
-            }
-            program.stop();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            logger.trace(ex.getMessage(), ex);
-            try {
-                if (config != null) {
-                    config.unlock();
-                }
-            } catch (IOException ig) {
-                // ignore exception
-            }
-            System.exit(1);
-        }
     }
 }

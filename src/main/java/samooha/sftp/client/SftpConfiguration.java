@@ -1,24 +1,27 @@
-package sftp.mailbox;
+package samooha.sftp.client;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Properties;
 
 public class SftpConfiguration {
-    private static final Logger logger = org.apache.log4j.Logger.getLogger(SftpConfiguration.class);
-    private final String filePath;
+    private static final Logger logger = Logger.getLogger(SftpConfiguration.class);
+    private final File configFile;
     private Properties properties;
     private boolean download = false, upload = false, deleteRemoteArchive = false, deleteLocalArchive = false;
     private boolean localWrite = true, remoteWrite = true, remoteArchive = true, localArchive = true;
 
-    public SftpConfiguration(String filePath) {
-        this.filePath = filePath;
+    public SftpConfiguration(File configFile) {
+        this.configFile = configFile;
     }
 
     public boolean isDownload() {
@@ -45,12 +48,12 @@ public class SftpConfiguration {
         return remoteWrite;
     }
 
-    public boolean isRemoteArchive() {
-        return remoteArchive;
+    public boolean isNotRemoteArchive() {
+        return !remoteArchive;
     }
 
-    public boolean isLocalArchive() {
-        return localArchive;
+    public boolean isNotLocalArchive() {
+        return !localArchive;
     }
 
     public String get(String name) {
@@ -58,17 +61,16 @@ public class SftpConfiguration {
     }
 
     public void loadConfiguration() throws IOException {
-        if (filePath == null) {
+        if (configFile == null) {
             throw new IOException("Configuration file path should not be null");
         }
-        File file = new File(filePath);
-        if (!file.isFile()) {
-            throw new IOException("Configuration file not found at (" + filePath + ")");
+        if (!configFile.isFile()) {
+            throw new IOException("Configuration file not found at (" + configFile + ")");
         }
         properties = new Properties();
-        properties.load(new FileReader(file));
+        properties.load(new FileReader(configFile));
         updateLog4jConfiguration(properties.getProperty("sftp.log"), properties.getProperty("sftp.pid"));
-        logger.info("SFTP Configuration Read from (" + file.toString() + ")");
+        logger.info("SFTP Configuration Read from (" + configFile + ")");
         setOperationMode(properties.getProperty("sftp.operation.mode"));
         if (get("sftp.host") == null) {
             throw new NullPointerException("SFTP Host should not be empty");
@@ -138,10 +140,8 @@ public class SftpConfiguration {
             FileUtils.forceMkdir(folder);
         }
         Properties props = new Properties();
-        try {
-            InputStream configStream = getClass().getResourceAsStream("/log4j.properties");
+        try (InputStream configStream = getClass().getResourceAsStream("/log4j.properties")) {
             props.load(configStream);
-            configStream.close();
         } catch (IOException e) {
             System.err.println("ERROR: Cannot load log4j.properties file");
         }
@@ -189,7 +189,7 @@ public class SftpConfiguration {
         try {
             return Integer.parseInt(get("sftp.port"));
         } catch (Exception ex) {
-            // ignore exception
+            logger.info("SFTP Service default port 22 is used.");
         }
         return 22;
     }

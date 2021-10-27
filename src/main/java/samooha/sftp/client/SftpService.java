@@ -1,4 +1,4 @@
-package sftp.mailbox;
+package samooha.sftp.client;
 
 import com.jcraft.jsch.*;
 
